@@ -1,0 +1,39 @@
+modules = ["nodejs-20"]
+
+[nix]
+channel = "stable-24_05"
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "CryptoGato Development Server"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "test_cryptogato"
+
+[[workflows.workflow]]
+name = "CryptoGato Development Server"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install && npm run compile && npm run test"
+
+[[workflows.workflow]]
+name = "test_cryptogato"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd /tmp && npm install && npm test"
+
+[deployment]
+run = ["sh", "-c", "npm install && npm run compile && npm run test"]
