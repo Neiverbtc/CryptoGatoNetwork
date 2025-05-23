@@ -23,6 +23,10 @@ args = "test_cryptogato"
 task = "workflow.run"
 args = "Install Dependencies"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Install Hardhat Dependencies"
+
 [[workflows.workflow]]
 name = "CryptoGato Development Server"
 author = "agent"
@@ -46,6 +50,14 @@ author = "agent"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "npm install --legacy-peer-deps"
+
+[[workflows.workflow]]
+name = "Install Hardhat Dependencies"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm install --save-dev \"@nomicfoundation/hardhat-chai-matchers@^2.0.0\" \"@nomicfoundation/hardhat-ethers@^3.0.0\" \"@nomicfoundation/hardhat-ignition-ethers@^0.15.0\" \"@nomicfoundation/hardhat-network-helpers@^1.0.0\" \"@nomicfoundation/hardhat-verify@^2.0.0\" \"@typechain/ethers-v6@^0.5.0\" \"@typechain/hardhat@^9.0.0\" \"@types/chai@^4.2.0\" \"@types/mocha@>=9.1.0\" \"ts-node@>=8.0.0\" \"typechain@^8.3.0\" \"typescript@>=4.5.0\" --legacy-peer-deps"
 
 [deployment]
 run = ["sh", "-c", "npm install && npm run compile && npm run test"]

@@ -1,12 +1,15 @@
 require("@nomicfoundation/hardhat-toolbox");
-require("@nomiclabs/hardhat-etherscan");
 require("hardhat-gas-reporter");
 require("solidity-coverage");
 require("dotenv").config();
 
-// Cargar tareas personalizadas
-require("./tasks/accounts");
-require("./tasks/balance");
+// Cargar tareas personalizadas si existen
+try {
+  require("./tasks/accounts");
+  require("./tasks/balance");
+} catch (error) {
+  // Tareas opcionales
+}
 
 /** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
