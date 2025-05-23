@@ -20,37 +20,34 @@ async function main() {
     // Parámetros de inicialización
     const initParams = {
         tokenAddress: CRYPTOGATO_TOKEN,
-        tokenPrice: ethers.parseEther("0.02"), // 0.02 BNB por token (50 tokens por BNB)
-        fundingGoal: ethers.parseEther("1000"), // Meta de 1000 BNB
-        minContribution: ethers.parseEther("0.1"), // Mínimo 0.1 BNB
-        maxContribution: ethers.parseEther("10"), // Máximo 10 BNB
-        startTime: Math.floor(Date.now() / 1000), // Ahora
+        maxTokens: ethers.parseUnits("1000000", 18), // 1 millón de tokens para testing
+        startTime: Math.floor(Date.now() / 1000) + 300, // Inicia en 5 minutos
         endTime: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60), // 30 días
-        vestingConfig: {
-            immediateReleasePercent: 2000, // 20% inmediato
-            cliffPeriod: 30 * 24 * 60 * 60, // 30 días cliff
-            vestingDuration: 150 * 24 * 60 * 60 // 150 días vesting
-        }
+        whitelistPrice: ethers.parseEther("0.001"), // 0.001 BNB por token (1,000 tokens por BNB)
+        publicPrice: ethers.parseEther("0.002"), // 0.002 BNB por token (500 tokens por BNB)
+        minPurchase: ethers.parseUnits("100", 18), // Mínimo 100 tokens
+        maxPurchase: ethers.parseUnits("5000", 18) // Máximo 5,000 tokens
     };
     
     try {
         console.log("\n📋 Parámetros de inicialización:");
-        console.log(`   💰 Precio: ${ethers.formatEther(initParams.tokenPrice)} BNB por token`);
-        console.log(`   🎯 Meta: ${ethers.formatEther(initParams.fundingGoal)} BNB`);
+        console.log(`   💰 Precio Whitelist: ${ethers.formatEther(initParams.whitelistPrice)} BNB por token`);
+        console.log(`   💰 Precio Público: ${ethers.formatEther(initParams.publicPrice)} BNB por token`);
+        console.log(`   🎯 Tokens máximos: ${ethers.formatUnits(initParams.maxTokens, 18)} CGATO`);
         console.log(`   📅 Duración: 30 días`);
-        console.log(`   🔄 Vesting: 20% inmediato + 150 días lineales`);
+        console.log(`   💎 Límites: ${ethers.formatUnits(initParams.minPurchase, 18)} - ${ethers.formatUnits(initParams.maxPurchase, 18)} tokens`);
         
         console.log("\n⏳ Enviando transacción de inicialización...");
         
         const tx = await presale.initialize(
             initParams.tokenAddress,
-            initParams.tokenPrice,
-            initParams.fundingGoal,
-            initParams.minContribution,
-            initParams.maxContribution,
+            initParams.maxTokens,
             initParams.startTime,
             initParams.endTime,
-            initParams.vestingConfig
+            initParams.whitelistPrice,
+            initParams.publicPrice,
+            initParams.minPurchase,
+            initParams.maxPurchase
         );
         
         console.log(`📤 TX Hash: ${tx.hash}`);
