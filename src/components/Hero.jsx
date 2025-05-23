@@ -1,5 +1,6 @@
 import React from 'react';
 import { TrendingUp, Shield, Zap, Users } from 'lucide-react';
+import cryptoGatoLogo from '../assets/cryptogato-logo-improved.svg';
 
 const Hero = () => {
   return (
@@ -9,7 +10,7 @@ const Hero = () => {
           {/* Logo Central */}
           <div className="flex justify-center mb-8">
             <img 
-              src="/assets/cryptogato-logo-improved.svg" 
+              src={cryptoGatoLogo} 
               alt="CryptoGato Logo" 
               className="h-32 w-32 md:h-40 md:w-40 filter drop-shadow-2xl hover:scale-105 transition-transform duration-500 animate-pulse"
             />
