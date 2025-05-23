@@ -157,12 +157,13 @@ function App() {
               src="/src/assets/cryptogato-logo.png" 
               alt="CryptoGato Logo"
               style={{
-                width: '50px',
-                height: '50px',
+                width: '65px',
+                height: '65px',
                 borderRadius: '50%',
-                border: '2px solid rgba(139, 92, 246, 0.5)',
+                border: '3px solid rgba(139, 92, 246, 0.6)',
                 background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
-                padding: '2px'
+                padding: '3px',
+                boxShadow: '0 0 20px rgba(139, 92, 246, 0.4)'
               }}
             />
             <div>
