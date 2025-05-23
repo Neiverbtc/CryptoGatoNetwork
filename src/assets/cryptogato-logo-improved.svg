@@ -1,0 +1,96 @@
+<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gato principal con efectos cyberpunk -->
+  <g transform="translate(10, 10)">
+    <!-- Cuerpo del gato -->
+    <ellipse cx="50" cy="70" rx="35" ry="25" fill="url(#catGradient)" stroke="url(#neonStroke)" stroke-width="2"/>
+    
+    <!-- Cabeza del gato -->
+    <circle cx="50" cy="35" r="28" fill="url(#catGradient)" stroke="url(#neonStroke)" stroke-width="2"/>
+    
+    <!-- Orejas puntiagudas -->
+    <path d="M25 20 L35 5 L40 25 Z" fill="url(#earGradient)" stroke="url(#neonStroke)" stroke-width="1.5"/>
+    <path d="M60 25 L65 5 L75 20 Z" fill="url(#earGradient)" stroke="url(#neonStroke)" stroke-width="1.5"/>
+    
+    <!-- Ojos cyberpunk brillantes -->
+    <circle cx="42" cy="30" r="6" fill="url(#eyeGlow)"/>
+    <circle cx="58" cy="30" r="6" fill="url(#eyeGlow)"/>
+    <circle cx="42" cy="30" r="3" fill="#00FFFF" opacity="0.9"/>
+    <circle cx="58" cy="30" r="3" fill="#00FFFF" opacity="0.9"/>
+    
+    <!-- Nariz triangular -->
+    <path d="M50 38 L47 42 L53 42 Z" fill="#FF00FF" opacity="0.8"/>
+    
+    <!-- Boca sonriente -->
+    <path d="M45 45 Q50 50 55 45" stroke="#00FFFF" stroke-width="2" fill="none" stroke-linecap="round"/>
+    
+    <!-- Bigotes -->
+    <line x1="25" y1="35" x2="15" y2="33" stroke="#00FFFF" stroke-width="2" opacity="0.7"/>
+    <line x1="25" y1="40" x2="15" y2="40" stroke="#00FFFF" stroke-width="2" opacity="0.7"/>
+    <line x1="75" y1="35" x2="85" y2="33" stroke="#00FFFF" stroke-width="2" opacity="0.7"/>
+    <line x1="75" y1="40" x2="85" y2="40" stroke="#00FFFF" stroke-width="2" opacity="0.7"/>
+    
+    <!-- Cola con movimiento -->
+    <path d="M15 75 Q5 85 10 95 Q20 90 15 80" stroke="url(#neonStroke)" stroke-width="3" fill="none" stroke-linecap="round"/>
+    
+    <!-- Patas -->
+    <ellipse cx="35" cy="90" rx="8" ry="12" fill="url(#catGradient)" stroke="url(#neonStroke)" stroke-width="1.5"/>
+    <ellipse cx="65" cy="90" rx="8" ry="12" fill="url(#catGradient)" stroke="url(#neonStroke)" stroke-width="1.5"/>
+    
+    <!-- Efectos de brillo -->
+    <circle cx="50" cy="35" r="32" fill="none" stroke="url(#glowRing)" stroke-width="1" opacity="0.3"/>
+    <circle cx="50" cy="35" r="36" fill="none" stroke="url(#glowRing)" stroke-width="0.5" opacity="0.2"/>
+  </g>
+  
+  <!-- Definiciones de gradientes y efectos -->
+  <defs>
+    <!-- Gradiente principal del gato -->
+    <linearGradient id="catGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.9" />
+      <stop offset="50%" style="stop-color:#7B68EE;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#9370DB;stop-opacity:0.9" />
+    </linearGradient>
+    
+    <!-- Gradiente de las orejas -->
+    <linearGradient id="earGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FF00FF;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#00FFFF;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <!-- Brillo de los ojos -->
+    <radialGradient id="eyeGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00FFFF;stop-opacity:1" />
+      <stop offset="70%" style="stop-color:#0080FF;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#004080;stop-opacity:0.6" />
+    </radialGradient>
+    
+    <!-- Contorno neón -->
+    <linearGradient id="neonStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FFFF;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#FF00FF;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#00FFFF;stop-opacity:1" />
+    </linearGradient>
+    
+    <!-- Anillo de brillo -->
+    <linearGradient id="glowRing" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#00FFFF;stop-opacity:0.8" />
+      <stop offset="50%" style="stop-color:#FFFFFF;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#FF00FF;stop-opacity:0.8" />
+    </linearGradient>
+    
+    <!-- Filtro de brillo -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge> 
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  
+  <!-- Aplicar filtro de brillo a todo el grupo -->
+  <style>
+    g {
+      filter: url(#glow);
+    }
+  </style>
+</svg>

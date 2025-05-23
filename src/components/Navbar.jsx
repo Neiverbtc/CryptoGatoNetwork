@@ -18,8 +18,12 @@ const Navbar = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 p-2 rounded-lg">
-              <Cat className="h-8 w-8 text-white" />
+            <div className="flex-shrink-0">
+              <img 
+                src="/assets/cryptogato-logo-improved.svg" 
+                alt="CryptoGato Logo" 
+                className="h-12 w-12 filter drop-shadow-lg hover:scale-105 transition-transform duration-300"
+              />
             </div>
             <div>
               <h1 className="text-xl font-bold glow-text">CryptoGato</h1>

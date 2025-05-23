@@ -6,6 +6,15 @@ const Hero = () => {
     <section className="relative py-20 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
         <div className="text-center">
+          {/* Logo Central */}
+          <div className="flex justify-center mb-8">
+            <img 
+              src="/assets/cryptogato-logo-improved.svg" 
+              alt="CryptoGato Logo" 
+              className="h-32 w-32 md:h-40 md:w-40 filter drop-shadow-2xl hover:scale-105 transition-transform duration-500 animate-pulse"
+            />
+          </div>
+          
           {/* Main Title */}
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
             <span className="glow-text">CryptoGato</span>
