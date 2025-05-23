@@ -196,14 +196,13 @@ describe("CryptoGato Token", function () {
 
     describe("Trading and Limits", function () {
         beforeEach(async function () {
-            // Mint some tokens and enable trading
+            // Mint some tokens 
             await cryptoGato.mint(owner.address, parseTokens("1000000"), 1);
-            await cryptoGato.enableTrading();
         });
 
         it("Should enforce max transaction amount", async function () {
             const maxTxAmount = await cryptoGato.maxTxAmount();
-            const excessAmount = maxTxAmount.add(1);
+            const excessAmount = maxTxAmount + 1n;
 
             await expectRevert(
                 cryptoGato.transfer(addr1.address, excessAmount),
@@ -213,21 +212,21 @@ describe("CryptoGato Token", function () {
 
         it("Should enforce max wallet amount", async function () {
             const maxWalletAmount = await cryptoGato.maxWalletAmount();
-            const validAmount = maxWalletAmount.div(2);
+            const validAmount = maxWalletAmount / 2n;
             
             // First transfer should succeed
             await cryptoGato.transfer(addr1.address, validAmount);
             
             // Second transfer that would exceed wallet limit should fail
             await expectRevert(
-                cryptoGato.transfer(addr1.address, validAmount.add(1)),
+                cryptoGato.transfer(addr1.address, validAmount + 1n),
                 "MaxWalletAmountExceeded"
             );
         });
 
         it("Should exempt addresses from limits", async function () {
             const maxTxAmount = await cryptoGato.maxTxAmount();
-            const excessAmount = maxTxAmount.add(1);
+            const excessAmount = maxTxAmount + 1n;
 
             // Set exemption
             await cryptoGato.setExemptFromLimits(addr1.address, true);
@@ -324,14 +323,18 @@ describe("CryptoGato Token", function () {
             expect(finalAvailable).to.equal(initialAvailable - mintAmount);
         });
 
-        it("Should return all categories info", async function () {
-            const categoriesInfo = await cryptoGato.getAllCategoriesInfo();
-            
-            expect(categoriesInfo.categories.length).to.equal(6);
-            expect(categoriesInfo.percentages.length).to.equal(6);
-            expect(categoriesInfo.limits.length).to.equal(6);
-            expect(categoriesInfo.minted.length).to.equal(6);
-            expect(categoriesInfo.available.length).to.equal(6);
+        it("Should handle category queries correctly", async function () {
+            // Test that we can query individual categories
+            for (let category = 1; category <= 6; category++) {
+                const percentage = await cryptoGato.categoryPercentages(category);
+                expect(percentage).to.be.greaterThan(0);
+                
+                const limit = await cryptoGato.getCategoryLimit(category);
+                expect(limit).to.be.greaterThan(0);
+                
+                const available = await cryptoGato.getCategoryAvailable(category);
+                expect(available).to.be.greaterThanOrEqual(0);
+            }
         });
     });
 
@@ -343,7 +346,7 @@ describe("CryptoGato Token", function () {
                 value: ethers.parseEther("1")
             });
 
-            const initialBalance = await owner.getBalance();
+            const initialBalance = await ethers.provider.getBalance(owner.address);
             
             await expect(cryptoGato.rescueBNB(owner.address))
                 .to.emit(cryptoGato, "BNBRescued");
