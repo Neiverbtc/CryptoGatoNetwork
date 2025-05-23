@@ -382,6 +382,269 @@ function App() {
         </div>
       </section>
 
+      {/* About Project Section */}
+      <section style={{
+        padding: '80px 20px',
+        background: 'rgba(15, 23, 42, 0.3)'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <h2 style={{ 
+            fontSize: '48px', 
+            textAlign: 'center', 
+            marginBottom: '60px',
+            background: 'linear-gradient(135deg, #c084fc, #60a5fa)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent'
+          }}>
+            💡 Sobre CryptoGato
+          </h2>
+          
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '20px',
+              padding: '40px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🎯</div>
+              <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#c084fc', marginBottom: '20px' }}>
+                Misión
+              </h3>
+              <p style={{ color: '#e2e8f0', lineHeight: '1.6', fontSize: '16px' }}>
+                Revolucionar el espacio DeFi en BSC con un ecosistema completo que combine 
+                innovación tecnológica, seguridad máxima y accesibilidad para todos los usuarios.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              border: '1px solid rgba(59, 130, 246, 0.3)',
+              borderRadius: '20px',
+              padding: '40px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>🚀</div>
+              <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#60a5fa', marginBottom: '20px' }}>
+                Visión
+              </h3>
+              <p style={{ color: '#e2e8f0', lineHeight: '1.6', fontSize: '16px' }}>
+                Ser el token líder en innovación DeFi, estableciendo nuevos estándares en 
+                distribución de liquidez, protección de inversores y funcionalidades avanzadas.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(30, 41, 59, 0.6)',
+              border: '1px solid rgba(52, 211, 153, 0.3)',
+              borderRadius: '20px',
+              padding: '40px',
+              textAlign: 'center'
+            }}>
+              <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚡</div>
+              <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#34d399', marginBottom: '20px' }}>
+                Innovación
+              </h3>
+              <p style={{ color: '#e2e8f0', lineHeight: '1.6', fontSize: '16px' }}>
+                Tecnología de punta con contratos inteligentes verificados, distribución 
+                multi-DEX automática y sistema de preventa con vesting programado.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Tokenomics Section */}
+      <section style={{
+        padding: '80px 20px',
+        background: 'rgba(30, 41, 59, 0.2)'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <h2 style={{ 
+            fontSize: '48px', 
+            textAlign: 'center', 
+            marginBottom: '60px',
+            background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent'
+          }}>
+            📊 Tokenomics CryptoGato
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '30px', marginBottom: '50px' }}>
+            {[
+              { category: 'Preventa', percentage: '30%', amount: '3B CGATO', color: '#c084fc', icon: '💰' },
+              { category: 'Liquidez', percentage: '25%', amount: '2.5B CGATO', color: '#60a5fa', icon: '💧' },
+              { category: 'Team/Marketing', percentage: '20%', amount: '2B CGATO', color: '#34d399', icon: '👥' },
+              { category: 'Exchanges', percentage: '15%', amount: '1.5B CGATO', color: '#fbbf24', icon: '🏪' },
+              { category: 'Ecosystem', percentage: '5%', amount: '500M CGATO', color: '#f87171', icon: '🌱' },
+              { category: 'Reserva Estratégica', percentage: '5%', amount: '500M CGATO', color: '#a78bfa', icon: '🛡️' }
+            ].map((item, index) => (
+              <div key={index} style={{
+                background: 'rgba(30, 41, 59, 0.6)',
+                border: `1px solid ${item.color}50`,
+                borderRadius: '15px',
+                padding: '25px',
+                textAlign: 'center'
+              }}>
+                <div style={{ fontSize: '32px', marginBottom: '15px' }}>{item.icon}</div>
+                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: item.color, marginBottom: '10px' }}>
+                  {item.category}
+                </h3>
+                <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff', marginBottom: '5px' }}>
+                  {item.percentage}
+                </div>
+                <div style={{ fontSize: '14px', color: '#94a3b8' }}>
+                  {item.amount}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            background: 'rgba(139, 92, 246, 0.1)',
+            border: '1px solid rgba(139, 92, 246, 0.3)',
+            borderRadius: '15px',
+            padding: '30px',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#c084fc', marginBottom: '20px' }}>
+              🔥 Características Únicas
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px' }}>
+              {[
+                '🛡️ Anti-whale Protection',
+                '🔄 Multi-DEX Liquidity',
+                '⏰ Vesting Programado',
+                '🔒 Contratos Verificados',
+                '📈 Burn Mechanism',
+                '🎯 Utility Real'
+              ].map((feature, index) => (
+                <div key={index} style={{
+                  background: 'rgba(59, 130, 246, 0.1)',
+                  padding: '15px',
+                  borderRadius: '10px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  color: '#60a5fa'
+                }}>
+                  {feature}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Roadmap Section */}
+      <section style={{
+        padding: '80px 20px',
+        background: 'rgba(15, 23, 42, 0.5)'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
+          <h2 style={{ 
+            fontSize: '48px', 
+            textAlign: 'center', 
+            marginBottom: '60px',
+            background: 'linear-gradient(135deg, #34d399, #10b981)',
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent'
+          }}>
+            🗺️ Roadmap 2025
+          </h2>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '40px' }}>
+            {[
+              {
+                phase: 'Q1 2025',
+                title: 'Lanzamiento Inicial',
+                status: '✅ Completado',
+                items: [
+                  '✓ Desarrollo de contratos',
+                  '✓ Auditoría de seguridad',
+                  '✓ Despliegue en BSC Testnet',
+                  '✓ DApp Web3 funcional'
+                ],
+                color: '#10b981'
+              },
+              {
+                phase: 'Q2 2025',
+                title: 'Expansión',
+                status: '🚀 En Progreso',
+                items: [
+                  '⏳ Migración a BSC Mainnet',
+                  '⏳ Listado en PancakeSwap',
+                  '⏳ Programa de staking',
+                  '⏳ Partnership con DEXs'
+                ],
+                color: '#3b82f6'
+              },
+              {
+                phase: 'Q3 2025',
+                title: 'Adopción Masiva',
+                status: '📋 Planificado',
+                items: [
+                  '📝 Listado en exchanges',
+                  '📝 Programa de governance',
+                  '📝 NFT Collection',
+                  '📝 Mobile App'
+                ],
+                color: '#8b5cf6'
+              }
+            ].map((roadmapItem, index) => (
+              <div key={index} style={{
+                background: 'rgba(30, 41, 59, 0.6)',
+                border: `2px solid ${roadmapItem.color}50`,
+                borderRadius: '20px',
+                padding: '30px'
+              }}>
+                <div style={{
+                  background: `${roadmapItem.color}20`,
+                  color: roadmapItem.color,
+                  padding: '8px 16px',
+                  borderRadius: '20px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  display: 'inline-block',
+                  marginBottom: '15px'
+                }}>
+                  {roadmapItem.phase}
+                </div>
+                
+                <h3 style={{ fontSize: '22px', fontWeight: 'bold', color: '#fff', marginBottom: '10px' }}>
+                  {roadmapItem.title}
+                </h3>
+                
+                <div style={{
+                  fontSize: '14px',
+                  color: roadmapItem.color,
+                  fontWeight: 'bold',
+                  marginBottom: '20px'
+                }}>
+                  {roadmapItem.status}
+                </div>
+                
+                <div>
+                  {roadmapItem.items.map((item, i) => (
+                    <div key={i} style={{
+                      color: '#e2e8f0',
+                      fontSize: '14px',
+                      marginBottom: '8px',
+                      lineHeight: '1.5'
+                    }}>
+                      {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Contracts Section */}
       <section id="contracts-section" style={{
         padding: '80px 20px',
