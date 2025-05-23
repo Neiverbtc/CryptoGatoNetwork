@@ -103,6 +103,37 @@ function App() {
     liquidity: '0xF308cbA0e89CaEbd325aE09BF9E19d142d9279CE'
   };
 
+  // Funciones para los botones
+  const openBSCScan = (address) => {
+    const url = chainId === 97 
+      ? `https://testnet.bscscan.com/address/${address}` 
+      : `https://bscscan.com/address/${address}`;
+    window.open(url, '_blank');
+  };
+
+  const scrollToContracts = () => {
+    document.getElementById('contracts-section').scrollIntoView({ 
+      behavior: 'smooth' 
+    });
+  };
+
+  const exploreEcosystem = () => {
+    if (!isConnected) {
+      alert('¡Conecta tu wallet primero para explorar el ecosistema completo!');
+      return;
+    }
+    
+    const features = [
+      '🪙 Token CryptoGato: 10 mil millones de tokens con anti-whale protection',
+      '💰 Sistema de Preventa: Fases controladas con vesting integrado', 
+      '🔄 Conector de Liquidez: Distribución automática multi-DEX',
+      '🛡️ Seguridad: Contratos verificados en BSCScan',
+      '⚡ BSC Network: Transacciones rápidas y económicas'
+    ];
+    
+    alert(`🚀 ECOSISTEMA CRYPTOGATO COMPLETO:\n\n${features.join('\n\n')}\n\n¡Todo funcionando en BSC Testnet!`);
+  };
+
   return (
     <div style={{ 
       minHeight: '100vh', 
@@ -278,32 +309,38 @@ function App() {
           marginBottom: '80px',
           flexWrap: 'wrap'
         }}>
-          <button style={{
-            background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
-            border: 'none',
-            padding: '18px 36px',
-            borderRadius: '15px',
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            fontSize: '18px',
-            boxShadow: '0 10px 30px rgba(139, 92, 246, 0.3)',
-            transition: 'all 0.3s ease'
-          }}>
+          <button 
+            onClick={exploreEcosystem}
+            style={{
+              background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+              border: 'none',
+              padding: '18px 36px',
+              borderRadius: '15px',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '18px',
+              boxShadow: '0 10px 30px rgba(139, 92, 246, 0.3)',
+              transition: 'all 0.3s ease'
+            }}
+          >
             🚀 Explorar Ecosystem
           </button>
           
-          <button style={{
-            background: 'rgba(30, 41, 59, 0.8)',
-            border: '2px solid rgba(139, 92, 246, 0.5)',
-            padding: '18px 36px',
-            borderRadius: '15px',
-            color: 'white',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            fontSize: '18px',
-            transition: 'all 0.3s ease'
-          }}>
+          <button 
+            onClick={scrollToContracts}
+            style={{
+              background: 'rgba(30, 41, 59, 0.8)',
+              border: '2px solid rgba(139, 92, 246, 0.5)',
+              padding: '18px 36px',
+              borderRadius: '15px',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '18px',
+              transition: 'all 0.3s ease'
+            }}
+          >
             📋 Ver Contratos
           </button>
         </div>
@@ -349,7 +386,7 @@ function App() {
       </section>
 
       {/* Contracts Section */}
-      <section style={{
+      <section id="contracts-section" style={{
         padding: '80px 20px',
         background: 'rgba(15, 23, 42, 0.8)',
         borderTop: '1px solid rgba(139, 92, 246, 0.3)'
@@ -405,17 +442,20 @@ function App() {
                   {contract.address}
                 </div>
                 
-                <button style={{
-                  background: `linear-gradient(135deg, ${contract.color}, ${contract.color}80)`,
-                  border: 'none',
-                  padding: '12px 24px',
-                  borderRadius: '10px',
-                  color: 'white',
-                  fontWeight: 'bold',
-                  cursor: 'pointer',
-                  marginTop: '20px',
-                  width: '100%'
-                }}>
+                <button 
+                  onClick={() => openBSCScan(contract.address)}
+                  style={{
+                    background: `linear-gradient(135deg, ${contract.color}, ${contract.color}80)`,
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '10px',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    marginTop: '20px',
+                    width: '100%'
+                  }}
+                >
                   Ver en BSCScan
                 </button>
               </div>
