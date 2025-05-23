@@ -11,7 +11,7 @@ async function main() {
     console.log("=".repeat(50));
     console.log(`📍 Red: ${network.name} (ChainID: ${network.chainId})`);
     console.log(`👤 Deployer: ${deployer.address}`);
-    console.log(`💰 Balance: ${ethers.utils.formatEther(await deployer.getBalance())} BNB`);
+    console.log(`💰 Balance: ${ethers.formatEther(await deployer.provider.getBalance(deployer.address))} BNB`);
     console.log("=".repeat(50));
 
     // Verificar que tenemos la configuración de red
@@ -28,14 +28,14 @@ async function main() {
     console.log("1️⃣  Desplegando CryptoGato Token...");
     const CryptoGato = await ethers.getContractFactory("CryptoGato");
     const cryptoGato = await CryptoGato.deploy(networkConfig.pancakeRouter);
-    await cryptoGato.deployed();
+    await cryptoGato.waitForDeployment();
     
-    console.log(`✅ CryptoGato desplegado en: ${cryptoGato.address}`);
-    console.log(`   TX Hash: ${cryptoGato.deployTransaction.hash}`);
+    console.log(`✅ CryptoGato desplegado en: ${await cryptoGato.getAddress()}`);
+    console.log(`   TX Hash: ${cryptoGato.deploymentTransaction().hash}`);
 
     // Esperar confirmaciones
     console.log("⏳ Esperando confirmaciones...");
-    await cryptoGato.deployTransaction.wait(networkConfig.confirmations || 5);
+    await cryptoGato.deploymentTransaction().wait(networkConfig.confirmations || 5);
 
     // Verificar información del contrato
     console.log("\n📊 Información del Token:");
