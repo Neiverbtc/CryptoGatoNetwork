@@ -1,7 +1,7 @@
 import React from 'react';
 import { useAccount, useConnect, useDisconnect } from 'wagmi';
 import { Wallet, Cat } from 'lucide-react';
-import cryptoGatoLogo from '../assets/cryptogato-logo-improved.svg';
+import CryptoGatoLogo from './CryptoGatoLogo';
 
 const Navbar = () => {
   const { address, isConnected } = useAccount();
@@ -20,11 +20,7 @@ const Navbar = () => {
           {/* Logo */}
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
-              <img 
-                src={cryptoGatoLogo} 
-                alt="CryptoGato Logo" 
-                className="h-12 w-12 filter drop-shadow-lg hover:scale-105 transition-transform duration-300"
-              />
+              <CryptoGatoLogo size="medium" />
             </div>
             <div>
               <h1 className="text-xl font-bold glow-text">CryptoGato</h1>
