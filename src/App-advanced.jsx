@@ -4,6 +4,7 @@ function App() {
   const [walletAddress, setWalletAddress] = useState('');
   const [isConnected, setIsConnected] = useState(false);
   const [chainId, setChainId] = useState(null);
+  const [showEcosystemModal, setShowEcosystemModal] = useState(false);
 
   // Detectar si MetaMask está instalado
   const isMetaMaskInstalled = () => {
@@ -122,16 +123,7 @@ function App() {
       alert('¡Conecta tu wallet primero para explorar el ecosistema completo!');
       return;
     }
-    
-    const features = [
-      '🪙 Token CryptoGato: 10 mil millones de tokens con anti-whale protection',
-      '💰 Sistema de Preventa: Fases controladas con vesting integrado', 
-      '🔄 Conector de Liquidez: Distribución automática multi-DEX',
-      '🛡️ Seguridad: Contratos verificados en BSCScan',
-      '⚡ BSC Network: Transacciones rápidas y económicas'
-    ];
-    
-    alert(`🚀 ECOSISTEMA CRYPTOGATO COMPLETO:\n\n${features.join('\n\n')}\n\n¡Todo funcionando en BSC Testnet!`);
+    setShowEcosystemModal(true);
   };
 
   return (
@@ -501,6 +493,220 @@ function App() {
           </div>
         </div>
       </footer>
+
+      {/* Modal Profesional del Ecosistema */}
+      {showEcosystemModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.9)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 10000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%)',
+            border: '2px solid rgba(139, 92, 246, 0.5)',
+            borderRadius: '20px',
+            padding: '40px',
+            maxWidth: '900px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            position: 'relative'
+          }}>
+            {/* Header del Modal */}
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+              <h2 style={{
+                fontSize: '42px',
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #c084fc, #60a5fa, #34d399)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+                marginBottom: '15px'
+              }}>
+                🚀 Ecosistema CryptoGato
+              </h2>
+              <p style={{ color: '#cbd5e1', fontSize: '18px' }}>
+                Arquitectura DeFi completa y profesional en Binance Smart Chain
+              </p>
+            </div>
+
+            {/* Grid de Características */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+              gap: '25px',
+              marginBottom: '40px'
+            }}>
+              {[
+                {
+                  icon: '🪙',
+                  title: 'Token CryptoGato (CGATO)',
+                  features: [
+                    '• Suministro: 10,000,000,000 tokens',
+                    '• Standard: BEP-20/ERC-20 compatible',
+                    '• Anti-whale: Límites máximos por transacción',
+                    '• Categorías: Distribución controlada por tipo',
+                    '• Minteo: Solo autorizados pueden crear tokens'
+                  ],
+                  color: '#c084fc',
+                  address: contracts.token
+                },
+                {
+                  icon: '💰',
+                  title: 'Sistema de Preventa',
+                  features: [
+                    '• Fases: Setup → Whitelist → Público → Finalizado',
+                    '• Vesting: Liberación gradual programada',
+                    '• Límites: Mínimo y máximo configurables',
+                    '• Whitelist: Acceso temprano controlado',
+                    '• Seguridad: Pausas y recuperación de emergencia'
+                  ],
+                  color: '#60a5fa',
+                  address: contracts.presale
+                },
+                {
+                  icon: '🔄',
+                  title: 'Conector de Liquidez Multi-DEX',
+                  features: [
+                    '• PancakeSwap: Integración nativa completa',
+                    '• Biswap: Soporte para fees reducidos',
+                    '• ApeSwap: Optimización DeFi avanzada',
+                    '• Distribución: Automática entre DEXs',
+                    '• Ruteo: Mejor precio automático'
+                  ],
+                  color: '#34d399',
+                  address: contracts.liquidity
+                }
+              ].map((feature, index) => (
+                <div key={index} style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: `1px solid ${feature.color}50`,
+                  borderRadius: '15px',
+                  padding: '25px'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '20px',
+                    gap: '12px'
+                  }}>
+                    <span style={{ fontSize: '32px' }}>{feature.icon}</span>
+                    <h3 style={{
+                      fontSize: '20px',
+                      fontWeight: 'bold',
+                      color: feature.color
+                    }}>
+                      {feature.title}
+                    </h3>
+                  </div>
+                  
+                  <div style={{ marginBottom: '20px' }}>
+                    {feature.features.map((item, i) => (
+                      <p key={i} style={{
+                        color: '#e2e8f0',
+                        fontSize: '14px',
+                        marginBottom: '8px',
+                        lineHeight: '1.5'
+                      }}>
+                        {item}
+                      </p>
+                    ))}
+                  </div>
+                  
+                  <div style={{
+                    background: `${feature.color}20`,
+                    padding: '10px',
+                    borderRadius: '8px',
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    color: feature.color,
+                    wordBreak: 'break-all'
+                  }}>
+                    {feature.address}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Estadísticas del Ecosistema */}
+            <div style={{
+              background: 'rgba(139, 92, 246, 0.1)',
+              border: '1px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '15px',
+              padding: '30px',
+              marginBottom: '30px'
+            }}>
+              <h3 style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+                color: '#c084fc',
+                marginBottom: '20px',
+                textAlign: 'center'
+              }}>
+                📊 Estadísticas del Ecosistema
+              </h3>
+              
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: '20px'
+              }}>
+                {[
+                  { label: 'Contratos Desplegados', value: '3', icon: '📋' },
+                  { label: 'Red de Despliegue', value: 'BSC Testnet', icon: '🌐' },
+                  { label: 'Estado de Verificación', value: 'Verificados', icon: '✅' },
+                  { label: 'Funcionalidades', value: '100% Activas', icon: '⚡' }
+                ].map((stat, index) => (
+                  <div key={index} style={{
+                    textAlign: 'center',
+                    padding: '15px'
+                  }}>
+                    <div style={{ fontSize: '24px', marginBottom: '8px' }}>{stat.icon}</div>
+                    <div style={{
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      color: '#60a5fa',
+                      marginBottom: '5px'
+                    }}>
+                      {stat.value}
+                    </div>
+                    <div style={{ fontSize: '14px', color: '#94a3b8' }}>
+                      {stat.label}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Botón de Cerrar */}
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={() => setShowEcosystemModal(false)}
+                style={{
+                  background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+                  border: 'none',
+                  padding: '15px 40px',
+                  borderRadius: '12px',
+                  color: 'white',
+                  fontWeight: 'bold',
+                  cursor: 'pointer',
+                  fontSize: '16px'
+                }}
+              >
+                ✨ ¡Increíble! Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
