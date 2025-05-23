@@ -313,422 +313,503 @@ contract CryptoGatoPresale is Ownable, Pausable, ReentrancyGuard {
 
         // Obtener la configuración de vesting para este usuario
         VestingConfig memory userConfig;
-        if (userVestingConfig[msg.sender].enabled || (!userVestingConfig[msg.sender].enabled && vestingConfig.enabled)) {
-            userConfig = userVestingConfig[msg.sender].enabled ? userVestingConfig[msg.sender] : vestingConfig;
+        if (userVestingConfig[msg.sender].enabled) {
+            // Si el usuario tiene configuración personalizada, usarla
+            userConfig = userVestingConfig[msg.sender];
         } else {
-            userConfig = VestingConfig(false, 10000, 0, 0); // Sin vesting
+            // Si no, usar la configuración global
+            userConfig = vestingConfig;
         }
 
-        // Configurar o actualizar vesting para el usuario
-        if (vestingDetails[msg.sender].totalAmount == 0) {
-            // Primera compra
-            vestingDetails[msg.sender] = VestingDetails({
-                totalAmount: tokenAmount,
-                claimedAmount: 0,
-                purchaseTime: block.timestamp
-            });
-        } else {
-            // Compra adicional
-            vestingDetails[msg.sender].totalAmount += tokenAmount;
-        }
+        // Actualizar datos de vesting
+        if (userConfig.enabled) {
+            VestingDetails storage details = vestingDetails[msg.sender];
 
-        // Si el vesting está deshabilitado o es liberación inicial completa, transferir tokens inmediatamente
-        if (!userConfig.enabled || userConfig.initialRelease == 10000) {
-            // Acuñar tokens directamente al comprador
-            CryptoGato token = CryptoGato(payable(cryptoGatoAddress));
-            token.mint(msg.sender, tokenAmount, PRESALE_CATEGORY);
-            
-            // Actualizar cantidad reclamada
-            vestingDetails[msg.sender].claimedAmount += tokenAmount;
-        } else {
-            // Calcular liberación inicial si aplica
+            // Si es la primera compra, inicializar
+            if (details.purchaseTime == 0) {
+                details.purchaseTime = block.timestamp;
+            }
+            // Si no es la primera compra, calcular el promedio ponderado del tiempo
+            else {
+                details.purchaseTime = (
+                    details.totalAmount * details.purchaseTime + 
+                    tokenAmount * block.timestamp
+                ) / (details.totalAmount + tokenAmount);
+            }
+
+            details.totalAmount = details.totalAmount + tokenAmount;
+
+            // Liberar el porcentaje inicial inmediatamente
             if (userConfig.initialRelease > 0) {
                 uint256 initialAmount = tokenAmount * userConfig.initialRelease / 10000;
                 if (initialAmount > 0) {
+                    details.claimedAmount = details.claimedAmount + initialAmount;
                     CryptoGato token = CryptoGato(payable(cryptoGatoAddress));
                     token.mint(msg.sender, initialAmount, PRESALE_CATEGORY);
-                    vestingDetails[msg.sender].claimedAmount += initialAmount;
                 }
             }
-        }
-
-        // Transferir BNB a tesorería
-        uint256 bnbToTransfer = msg.value - refundAmount;
-        if (bnbToTransfer > 0) {
-            (bool success, ) = treasuryWallet.call{value: bnbToTransfer}("");
-            if (!success) revert CGErrors.FailedToSendBNB(treasuryWallet, bnbToTransfer);
+        } else {
+            // Si no hay vesting, entregar todos los tokens inmediatamente
+            CryptoGato token = CryptoGato(payable(cryptoGatoAddress));
+            token.mint(msg.sender, tokenAmount, PRESALE_CATEGORY);
         }
 
         // Devolver exceso de BNB si es necesario
         if (refundAmount > 0) {
-            (bool success, ) = msg.sender.call{value: refundAmount}("");
-            if (!success) revert CGErrors.RefundFailed(msg.sender, refundAmount);
+            (bool refundSuccess, ) = msg.sender.call{value: refundAmount}("");
+            if (!refundSuccess) revert CGErrors.RefundFailed(msg.sender, refundAmount);
+        }
+
+        // Enviar BNB a la tesorería (patrón checks-effects-interactions)
+        uint256 bnbToSend = address(this).balance;
+        if (bnbToSend > 0) {
+            (bool sent, ) = treasuryWallet.call{value: bnbToSend}("");
+            if (!sent) revert CGErrors.FailedToSendBNB(treasuryWallet, bnbToSend);
         }
 
         emit TokensPurchased(msg.sender, msg.value - refundAmount, tokenAmount, currentPhase);
     }
 
     /**
-     * @dev Permite a un usuario reclamar tokens después del vesting
+     * @dev Permite a un usuario reclamar sus tokens después del vesting
      */
-    function claimTokens() external nonReentrant whenNotPaused {
-        VestingDetails storage userVesting = vestingDetails[msg.sender];
-        
-        if (userVesting.totalAmount == 0) revert CGErrors.NoTokensToClaim();
-        if (userVesting.claimedAmount >= userVesting.totalAmount) revert CGErrors.AllTokensClaimed();
-
-        // Obtener configuración de vesting del usuario
-        VestingConfig memory userConfig = userVestingConfig[msg.sender].enabled ? 
-            userVestingConfig[msg.sender] : vestingConfig;
-
-        if (!userConfig.enabled) revert CGErrors.NoTokensToClaimNow();
-
-        // Verificar cliff period
-        uint256 cliffEnd = userVesting.purchaseTime + userConfig.cliffPeriod;
-        if (block.timestamp < cliffEnd) 
-            revert CGErrors.CliffPeriodNotPassed(userVesting.purchaseTime, cliffEnd);
-
-        // Calcular tokens disponibles para reclamar
-        uint256 tokensToRelease = calculateVestedAmount(msg.sender);
-        uint256 tokensToMint = tokensToRelease - userVesting.claimedAmount;
-
-        if (tokensToMint == 0) revert CGErrors.NoTokensToClaimNow();
-
-        // Actualizar cantidad reclamada
-        userVesting.claimedAmount += tokensToMint;
-
-        // Acuñar tokens
-        CryptoGato token = CryptoGato(payable(cryptoGatoAddress));
-        token.mint(msg.sender, tokensToMint, PRESALE_CATEGORY);
-
-        emit TokensClaimed(msg.sender, tokensToMint);
-    }
-
-    /**
-     * @dev Calcula la cantidad de tokens que han sido vestidos para un usuario
-     * @param user Dirección del usuario
-     * @return Cantidad de tokens vestidos
-     */
-    function calculateVestedAmount(address user) public view returns (uint256) {
-        VestingDetails memory userVesting = vestingDetails[user];
-        if (userVesting.totalAmount == 0) return 0;
-
-        VestingConfig memory userConfig = userVestingConfig[user].enabled ? 
-            userVestingConfig[user] : vestingConfig;
-
-        if (!userConfig.enabled) return userVesting.totalAmount;
-
-        uint256 cliffEnd = userVesting.purchaseTime + userConfig.cliffPeriod;
-        if (block.timestamp < cliffEnd) {
-            // Solo liberación inicial antes del cliff
-            return userVesting.totalAmount * userConfig.initialRelease / 10000;
+    function claimVestedTokens() external nonReentrant whenNotPaused whenInitialized {
+        // Obtener la configuración de vesting para este usuario
+        VestingConfig memory userConfig;
+        if (userVestingConfig[msg.sender].enabled) {
+            userConfig = userVestingConfig[msg.sender];
+        } else {
+            userConfig = vestingConfig;
         }
 
-        uint256 vestingEnd = userVesting.purchaseTime + userConfig.cliffPeriod + userConfig.vestingPeriod;
-        if (block.timestamp >= vestingEnd) {
-            // Vesting completado
-            return userVesting.totalAmount;
-        }
+        if (!userConfig.enabled) revert CGErrors.InvalidVestingConfig(0, 0);
 
-        // Calcular vesting progresivo
-        uint256 initialAmount = userVesting.totalAmount * userConfig.initialRelease / 10000;
-        uint256 remainingAmount = userVesting.totalAmount - initialAmount;
-        uint256 timePassedSinceCliff = block.timestamp - cliffEnd;
-        uint256 vestedFromRemaining = remainingAmount * timePassedSinceCliff / userConfig.vestingPeriod;
+        VestingDetails storage details = vestingDetails[msg.sender];
+        if (details.totalAmount == 0) revert CGErrors.NoTokensToClaim();
+        if (details.claimedAmount >= details.totalAmount) revert CGErrors.AllTokensClaimed();
 
-        return initialAmount + vestedFromRemaining;
-    }
+        // Verificar si ha pasado el período de cliff
+        uint256 cliffEnd = details.purchaseTime + userConfig.cliffPeriod;
+        if (block.timestamp <= cliffEnd)
+            revert CGErrors.CliffPeriodNotPassed(details.purchaseTime, cliffEnd);
 
-    // ================= GESTIÓN DE WHITELIST =================
+        // Calcular tokens disponibles según el vesting lineal
+        uint256 totalVestingDuration = userConfig.vestingPeriod;
+        uint256 timeSincePurchase = block.timestamp - details.purchaseTime;
 
-    /**
-     * @dev Añade una dirección a la whitelist
-     * @param account Dirección a añadir
-     */
-    function addToWhitelist(address account) external onlyOwner {
-        require(account != address(0), "CryptoGatoPresale: zero address");
-        require(!whitelist[account], "CryptoGatoPresale: already whitelisted");
+        uint256 vestedAmount;
 
-        whitelist[account] = true;
-        emit AddedToWhitelist(account);
-    }
+        // Si ya pasó todo el período de vesting, entregar el 100%
+        if (timeSincePurchase >= totalVestingDuration) {
+            vestedAmount = details.totalAmount;
+        } else {
+            // Calcular cantidad según el tiempo transcurrido (vesting lineal)
+            vestedAmount = details.totalAmount * timeSincePurchase / totalVestingDuration;
 
-    /**
-     * @dev Añade múltiples direcciones a la whitelist
-     * @param accounts Array de direcciones a añadir
-     */
-    function addMultipleToWhitelist(address[] calldata accounts) external onlyOwner {
-        if (accounts.length > 100) revert CGErrors.BatchTooLarge(accounts.length, 100);
+            // Asegurarse de incluir la liberación inicial en el cálculo
+            if (userConfig.initialRelease > 0) {
+                uint256 initialAmount = details.totalAmount * userConfig.initialRelease / 10000;
+                uint256 remainingAmount = details.totalAmount - initialAmount;
 
-        for (uint256 i = 0; i < accounts.length; i++) {
-            if (accounts[i] != address(0) && !whitelist[accounts[i]]) {
-                whitelist[accounts[i]] = true;
-                emit AddedToWhitelist(accounts[i]);
+                vestedAmount = initialAmount + 
+                    (remainingAmount * timeSincePurchase / totalVestingDuration);
             }
         }
+
+        // Calcular cuántos tokens se pueden reclamar ahora
+        uint256 claimableAmount = vestedAmount - details.claimedAmount;
+        require(claimableAmount > 0, "CryptoGatoPresale: no tokens to claim now");
+
+        // Actualizar registros
+        details.claimedAmount = details.claimedAmount + claimableAmount;
+
+        // Enviar tokens
+        CryptoGato token = CryptoGato(payable(cryptoGatoAddress));
+        token.mint(msg.sender, claimableAmount, PRESALE_CATEGORY);
+
+        emit TokensClaimed(msg.sender, claimableAmount);
+    }
+
+    // ================= FUNCIONES DE WHITELIST =================
+
+        /**
+     * @dev Añade direcciones a la whitelist
+     * @param accounts Array de direcciones a añadir
+     */
+    function addToWhitelist(address[] calldata accounts) external onlyOwner {
+        require(accounts.length <= 500, "CryptoGatoPresale: batch too large");
+
+        for (uint256 i = 0; i < accounts.length; i++) {
+            require(accounts[i] != address(0), "CryptoGatoPresale: zero address");
+            whitelist[accounts[i]] = true;
+            emit AddedToWhitelist(accounts[i]);
+        }
     }
 
     /**
-     * @dev Elimina una dirección de la whitelist
-     * @param account Dirección a eliminar
+     * @dev Elimina direcciones de la whitelist
+     * @param accounts Array de direcciones a eliminar
      */
-    function removeFromWhitelist(address account) external onlyOwner {
-        require(whitelist[account], "CryptoGatoPresale: not whitelisted");
+    function removeFromWhitelist(address[] calldata accounts) external onlyOwner {
+        require(accounts.length <= 500, "CryptoGatoPresale: batch too large");
 
-        whitelist[account] = false;
-        emit RemovedFromWhitelist(account);
+        for (uint256 i = 0; i < accounts.length; i++) {
+            whitelist[accounts[i]] = false;
+            emit RemovedFromWhitelist(accounts[i]);
+        }
     }
 
-    // ================= GESTIÓN DE FASES =================
+    // ================= FUNCIONES DE CONFIGURACIÓN Y CONTROL =================
 
     /**
-     * @dev Cambia la fase de la preventa
-     * @param newPhase Nueva fase
+     * @dev Programa el cambio de fase con timelock
+     * @param _phase Nueva fase
      */
-    function setPhase(Phase newPhase) external onlyOwner {
-        if (newPhase == Phase.SETUP && currentPhase != Phase.SETUP) 
-            revert CGErrors.CannotGoBackToSetup();
-        if (currentPhase == Phase.ENDED) 
-            revert CGErrors.AlreadyEnded();
+    function scheduleSetCurrentPhase(Phase _phase) external onlyOwner whenInitialized {
+        require(_phase != Phase.SETUP, "CryptoGatoPresale: cannot go back to setup");
 
-        currentPhase = newPhase;
-        emit PhaseChanged(newPhase);
+        bytes32 operationId = keccak256(abi.encode("setCurrentPhase", _phase));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
+
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
     /**
-     * @dev Finaliza la preventa anticipadamente
+     * @dev Ejecuta el cambio de fase después del timelock
+     * @param _phase Nueva fase
      */
-    function endPresale() external onlyOwner {
-        require(currentPhase != Phase.ENDED, "CryptoGatoPresale: already ended");
-        require(currentPhase != Phase.SETUP, "CryptoGatoPresale: not started");
+    function executeSetCurrentPhase(Phase _phase) external onlyOwner whenInitialized {
+        bytes32 operationId = keccak256(abi.encode("setCurrentPhase", _phase));
+        require(timelockOperations[operationId] > 0, "CryptoGatoPresale: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGatoPresale: timelock not expired");
 
-        currentPhase = Phase.ENDED;
-        emit PresaleEnded();
+        delete timelockOperations[operationId];
+
+        currentPhase = _phase;
+        emit PhaseChanged(_phase);
+        emit TimelockOperationExecuted(operationId);
     }
-
-    // ================= GESTIÓN DE PRECIOS =================
 
     /**
-     * @dev Actualiza el precio de una fase
-     * @param phase Fase a actualizar
-     * @param newPrice Nuevo precio (en wei por token)
+     * @dev Programa la actualización del precio de una fase con timelock
+     * @param _phase Fase a actualizar
+     * @param _price Nuevo precio en wei por token
      */
-    function updatePhasePrice(Phase phase, uint256 newPrice) external onlyOwner {
-        require(phase == Phase.WHITELIST || phase == Phase.PUBLIC, "CryptoGatoPresale: invalid phase");
-        require(newPrice > 0, "CryptoGatoPresale: invalid price");
-        require(newPrice >= 1e8, "CryptoGatoPresale: price too low");
-        require(newPrice <= 1e18, "CryptoGatoPresale: price too high");
+    function scheduleUpdatePhasePrice(Phase _phase, uint256 _price) external onlyOwner whenInitialized {
+        require(_phase != Phase.SETUP && _phase != Phase.ENDED, "CryptoGatoPresale: invalid phase");
+        require(_price > 0, "CryptoGatoPresale: invalid price");
+        require(_price >= 1e8, "CryptoGatoPresale: price too low");
+        require(_price <= 1e18, "CryptoGatoPresale: price too high");
 
-        phasePrice[phase] = newPrice;
-        emit PriceUpdated(phase, newPrice);
+        bytes32 operationId = keccak256(abi.encode("updatePhasePrice", _phase, _price));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
+
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
-    // ================= GESTIÓN DE VESTING =================
+    /**
+     * @dev Ejecuta la actualización del precio de una fase después del timelock
+     * @param _phase Fase a actualizar
+     * @param _price Nuevo precio en wei por token
+     */
+    function executeUpdatePhasePrice(Phase _phase, uint256 _price) external onlyOwner whenInitialized {
+        bytes32 operationId = keccak256(abi.encode("updatePhasePrice", _phase, _price));
+        require(timelockOperations[operationId] > 0, "CryptoGatoPresale: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGatoPresale: timelock not expired");
+
+        delete timelockOperations[operationId];
+
+        phasePrice[_phase] = _price;
+        emit PriceUpdated(_phase, _price);
+        emit TimelockOperationExecuted(operationId);
+    }
+
+    /**
+     * @dev Actualiza las fechas de inicio y fin de la preventa
+     * @param _startTime Nueva fecha de inicio
+     * @param _endTime Nueva fecha de fin
+     */
+    function updatePresaleDates(uint256 _startTime, uint256 _endTime) external onlyOwner whenInitialized {
+        require(_startTime > block.timestamp, "CryptoGatoPresale: invalid start time");
+        require(_endTime > _startTime, "CryptoGatoPresale: invalid end time");
+
+        startTime = _startTime;
+        endTime = _endTime;
+    }
+
+    /**
+     * @dev Actualiza los límites de compra
+     * @param _minPurchase Nuevo límite mínimo
+     * @param _maxPurchase Nuevo límite máximo
+     */
+    function updatePurchaseLimits(uint256 _minPurchase, uint256 _maxPurchase) external onlyOwner whenInitialized {
+        require(_minPurchase > 0, "CryptoGatoPresale: invalid min purchase");
+        require(_maxPurchase >= _minPurchase, "CryptoGatoPresale: invalid max purchase");
+
+        minPurchaseAmount = _minPurchase;
+        maxPurchaseAmount = _maxPurchase;
+    }
+
+    /**
+     * @dev Programa la actualización de la dirección de tesorería con timelock
+     * @param _treasuryWallet Nueva dirección de tesorería
+     */
+    function scheduleUpdateTreasuryWallet(address _treasuryWallet) external onlyOwner {
+        require(_treasuryWallet != address(0), "CryptoGatoPresale: zero address");
+
+        bytes32 operationId = keccak256(abi.encode("updateTreasuryWallet", _treasuryWallet));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
+
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
+    }
+
+    /**
+     * @dev Ejecuta la actualización de la dirección de tesorería después del timelock
+     * @param _treasuryWallet Nueva dirección de tesorería
+     */
+    function executeUpdateTreasuryWallet(address _treasuryWallet) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("updateTreasuryWallet", _treasuryWallet));
+        require(timelockOperations[operationId] > 0, "CryptoGatoPresale: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGatoPresale: timelock not expired");
+
+        delete timelockOperations[operationId];
+
+        treasuryWallet = _treasuryWallet;
+        emit TimelockOperationExecuted(operationId);
+    }
 
     /**
      * @dev Actualiza la configuración de vesting global
-     * @param enabled Si el vesting está habilitado
-     * @param initialRelease Porcentaje de liberación inicial (base 10000)
-     * @param cliffPeriod Período de cliff en segundos
-     * @param vestingPeriod Período de vesting en segundos
+     * @param _enabled Si el vesting está habilitado
+     * @param _initialRelease Porcentaje liberado al inicio (base 10000)
+     * @param _cliffPeriod Período de cliff en segundos
+     * @param _vestingPeriod Período total de vesting en segundos
      */
     function updateVestingConfig(
-        bool enabled,
-        uint256 initialRelease,
-        uint256 cliffPeriod,
-        uint256 vestingPeriod
-    ) external onlyOwner {
-        if (enabled) {
-            require(initialRelease <= 10000, "CryptoGatoPresale: invalid initial release");
-            require(vestingPeriod > 0, "CryptoGatoPresale: invalid vesting period");
-        }
+        bool _enabled,
+        uint256 _initialRelease,
+        uint256 _cliffPeriod,
+        uint256 _vestingPeriod
+    ) external onlyOwner whenInitialized {
+        require(_initialRelease <= 10000, "CryptoGatoPresale: invalid initial release");
+        require(_vestingPeriod > 0, "CryptoGatoPresale: invalid vesting period");
 
-        vestingConfig = VestingConfig({
-            enabled: enabled,
-            initialRelease: initialRelease,
-            cliffPeriod: cliffPeriod,
-            vestingPeriod: vestingPeriod
-        });
+        // Esta actualización solo afecta a nuevas compras, no a las existentes
+        vestingConfig.enabled = _enabled;
+        vestingConfig.initialRelease = _initialRelease;
+        vestingConfig.cliffPeriod = _cliffPeriod;
+        vestingConfig.vestingPeriod = _vestingPeriod;
 
-        emit VestingConfigUpdated(enabled, initialRelease, cliffPeriod, vestingPeriod);
+        emit VestingConfigUpdated(_enabled, _initialRelease, _cliffPeriod, _vestingPeriod);
     }
 
     /**
-     * @dev Configura vesting personalizado para un usuario específico
-     * @param user Usuario para configurar
-     * @param enabled Si el vesting está habilitado
-     * @param initialRelease Porcentaje de liberación inicial (base 10000)
-     * @param cliffPeriod Período de cliff en segundos
-     * @param vestingPeriod Período de vesting en segundos
+     * @dev Actualiza la configuración de vesting para un usuario específico
+     * @param user Dirección del usuario
+     * @param _enabled Si el vesting está habilitado
+     * @param _initialRelease Porcentaje liberado al inicio (base 10000)
+     * @param _cliffPeriod Período de cliff en segundos
+     * @param _vestingPeriod Período total de vesting en segundos
      */
-    function setUserVestingConfig(
+    function updateUserVestingConfig(
         address user,
-        bool enabled,
-        uint256 initialRelease,
-        uint256 cliffPeriod,
-        uint256 vestingPeriod
-    ) external onlyOwner {
+        bool _enabled,
+        uint256 _initialRelease,
+        uint256 _cliffPeriod,
+        uint256 _vestingPeriod
+    ) external onlyOwner whenInitialized {
         require(user != address(0), "CryptoGatoPresale: zero address");
-        
-        if (enabled) {
-            require(initialRelease <= 10000, "CryptoGatoPresale: invalid initial release");
-            require(vestingPeriod > 0, "CryptoGatoPresale: invalid vesting period");
-        }
+        require(_initialRelease <= 10000, "CryptoGatoPresale: invalid initial release");
+        require(_vestingPeriod > 0, "CryptoGatoPresale: invalid vesting period");
 
+        // Configurar vesting personalizado para este usuario
         userVestingConfig[user] = VestingConfig({
-            enabled: enabled,
-            initialRelease: initialRelease,
-            cliffPeriod: cliffPeriod,
-            vestingPeriod: vestingPeriod
+            enabled: _enabled,
+            initialRelease: _initialRelease,
+            cliffPeriod: _cliffPeriod,
+            vestingPeriod: _vestingPeriod
         });
 
-        emit UserVestingConfigUpdated(user, enabled, initialRelease, cliffPeriod, vestingPeriod);
+        emit UserVestingConfigUpdated(user, _enabled, _initialRelease, _cliffPeriod, _vestingPeriod);
     }
 
-    // ================= FUNCIONES ADMINISTRATIVAS =================
-
     /**
-     * @dev Retira fondos BNB del contrato
-     * @param to Dirección destino
-     * @param amount Cantidad a retirar (0 para todo)
+     * @dev Programa la finalización anticipada de la preventa con timelock
      */
-    function withdrawFunds(address payable to, uint256 amount) external onlyOwner {
-        require(to != address(0), "CryptoGatoPresale: zero address");
+    function scheduleEndPresale() external onlyOwner whenInitialized {
+        require(currentPhase != Phase.ENDED, "CryptoGatoPresale: already ended");
 
-        uint256 balance = address(this).balance;
-        require(balance > 0, "CryptoGatoPresale: no funds");
+        bytes32 operationId = keccak256(abi.encode("endPresale"));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
 
-        uint256 toWithdraw = amount == 0 ? balance : amount;
-        require(toWithdraw <= balance, "CryptoGatoPresale: insufficient balance");
-
-        (bool success, ) = to.call{value: toWithdraw}("");
-        require(success, "CryptoGatoPresale: withdrawal failed");
-
-        emit FundsWithdrawn(to, toWithdraw);
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
     /**
-     * @dev Permite al propietario pausar el contrato
+     * @dev Ejecuta la finalización anticipada de la preventa después del timelock
+     */
+    function executeEndPresale() external onlyOwner whenInitialized {
+        bytes32 operationId = keccak256(abi.encode("endPresale"));
+        require(timelockOperations[operationId] > 0, "CryptoGatoPresale: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGatoPresale: timelock not expired");
+
+        delete timelockOperations[operationId];
+
+        currentPhase = Phase.ENDED;
+        endTime = block.timestamp;
+
+        emit PresaleEnded();
+        emit TimelockOperationExecuted(operationId);
+    }
+
+    /**
+     * @dev Retorna los tokens no vendidos al owner
+     */
+    function returnUnsoldTokens() external onlyOwner whenInitialized {
+        require(currentPhase == Phase.ENDED || block.timestamp > endTime, "CryptoGatoPresale: not ended");
+
+        uint256 unsoldAmount = maxTokensToSell - totalTokensSold;
+        if (unsoldAmount > 0) {
+            totalTokensSold = maxTokensToSell; // Marcar como vendidos para evitar reclamar más de una vez
+            emit UnsoldTokensReturned(unsoldAmount);
+        }
+    }
+
+    // ================= FUNCIONES DE TIMELOCK =================
+
+    /**
+     * @dev Cancela una operación programada con timelock
+     * @param operationId ID de la operación a cancelar
+     */
+    function cancelTimelockOperation(bytes32 operationId) external onlyOwner {
+        require(timelockOperations[operationId] > 0, "CryptoGatoPresale: operation not scheduled");
+
+        delete timelockOperations[operationId];
+        emit TimelockOperationCancelled(operationId);
+    }
+
+    // ================= FUNCIONES DE PAUSA =================
+
+    /**
+     * @dev Pausa el contrato
      */
     function pause() external onlyOwner {
         _pause();
     }
 
     /**
-     * @dev Permite al propietario despausar el contrato
+     * @dev Despausa el contrato
      */
     function unpause() external onlyOwner {
         _unpause();
     }
 
-    // ================= FUNCIONES DE VISTA =================
+    // ================= FUNCIONES DE EMERGENCIA =================
 
     /**
-     * @dev Retorna información general de la preventa
+     * @dev Rescata tokens ERC20 enviados por error al contrato
+     * @param tokenAddress Dirección del token a rescatar
+     * @param to Dirección a la que enviar los tokens
+     * @param amount Cantidad de tokens a rescatar
      */
-    function getPresaleInfo() external view returns (
-        Phase _currentPhase,
-        uint256 _totalTokensSold,
-        uint256 _maxTokensToSell,
-        uint256 _startTime,
-        uint256 _endTime,
-        uint256 _whitelistPrice,
-        uint256 _publicPrice,
-        bool _isInitialized
-    ) {
-        return (
-            currentPhase,
-            totalTokensSold,
-            maxTokensToSell,
-            startTime,
-            endTime,
-            phasePrice[Phase.WHITELIST],
-            phasePrice[Phase.PUBLIC],
-            isInitialized
-        );
+    function rescueTokens(address tokenAddress, address to, uint256 amount) external onlyOwner {
+        require(to != address(0), "CryptoGatoPresale: cannot rescue to zero address");
+
+        IERC20 token = IERC20(tokenAddress);
+        uint256 balance = token.balanceOf(address(this));
+        require(amount <= balance, "CryptoGatoPresale: insufficient balance");
+
+        token.safeTransfer(to, amount);
     }
 
     /**
-     * @dev Retorna información de compra de un usuario
-     * @param user Dirección del usuario
+     * @dev Rescata BNB enviado por error al contrato
+     * @param to Dirección a la que enviar el BNB
+     * @param amount Cantidad de BNB a rescatar
      */
-    function getUserInfo(address user) external view returns (
-        uint256 purchased,
-        uint256 totalVested,
-        uint256 claimed,
-        uint256 claimable,
-        bool isWhitelisted
-    ) {
-        VestingDetails memory userVesting = vestingDetails[user];
-        return (
-            tokensPurchased[user],
-            userVesting.totalAmount,
-            userVesting.claimedAmount,
-            calculateVestedAmount(user) - userVesting.claimedAmount,
-            whitelist[user]
-        );
+    function rescueBNB(address payable to, uint256 amount) external onlyOwner {
+        require(to != address(0), "CryptoGatoPresale: cannot rescue to zero address");
+        require(amount <= address(this).balance, "CryptoGatoPresale: insufficient balance");
+
+        (bool success, ) = to.call{value: amount}("");
+        require(success, "CryptoGatoPresale: BNB transfer failed");
+    }
+
+    // ================= FUNCIONES VIEW =================
+
+    /**
+     * @dev Calcula la cantidad de tokens pendientes de reclamar para un usuario
+     * @param user Dirección del usuario
+     * @return Cantidad de tokens reclamables
+     */
+    function getClaimableTokens(address user) external view returns (uint256) {
+        // Obtener la configuración de vesting para este usuario
+        VestingConfig memory userConfig;
+        if (userVestingConfig[user].enabled) {
+            userConfig = userVestingConfig[user];
+        } else {
+            userConfig = vestingConfig;
+        }
+
+        if (!userConfig.enabled) {
+            return 0;
+        }
+
+        VestingDetails storage details = vestingDetails[user];
+        if (details.totalAmount == 0 || details.claimedAmount >= details.totalAmount) {
+            return 0;
+        }
+
+        // Verificar si ha pasado el período de cliff
+        if (block.timestamp <= details.purchaseTime + userConfig.cliffPeriod) {
+            return 0;
+        }
+
+        // Calcular tokens disponibles según el vesting lineal
+        uint256 totalVestingDuration = userConfig.vestingPeriod;
+        uint256 timeSincePurchase = block.timestamp - details.purchaseTime;
+
+        uint256 vestedAmount;
+
+        // Si ya pasó todo el período de vesting, disponible el 100%
+        if (timeSincePurchase >= totalVestingDuration) {
+            vestedAmount = details.totalAmount;
+        } else {
+            // Calcular cantidad según el tiempo transcurrido (vesting lineal)
+            vestedAmount = details.totalAmount * timeSincePurchase / totalVestingDuration;
+
+            // Asegurarse de incluir la liberación inicial en el cálculo
+            if (userConfig.initialRelease > 0) {
+                uint256 initialAmount = details.totalAmount * userConfig.initialRelease / 10000;
+                uint256 remainingAmount = details.totalAmount - initialAmount;
+
+                vestedAmount = initialAmount + 
+                    (remainingAmount * timeSincePurchase / totalVestingDuration);
+            }
+        }
+
+        // Restar lo que ya se ha reclamado
+        uint256 claimableAmount = vestedAmount > details.claimedAmount ? 
+                                 vestedAmount - details.claimedAmount : 0;
+
+        return claimableAmount;
     }
 
     /**
      * @dev Verifica si la preventa está activa
+     * @return true si la preventa está activa, false en caso contrario
      */
     function isPresaleActive() external view returns (bool) {
-        return (currentPhase == Phase.WHITELIST || currentPhase == Phase.PUBLIC) &&
-               block.timestamp >= startTime &&
-               block.timestamp <= endTime &&
-               totalTokensSold < maxTokensToSell;
+        return (
+            (currentPhase == Phase.WHITELIST || currentPhase == Phase.PUBLIC) &&
+            block.timestamp >= startTime &&
+            block.timestamp <= endTime &&
+            totalTokensSold < maxTokensToSell
+        );
     }
 
     /**
-     * @dev Calcula el precio actual según la fase
-     */
-    function getCurrentPrice() external view returns (uint256) {
-        return phasePrice[currentPhase];
-    }
-
-    /**
-     * @dev Calcula cuántos tokens se pueden comprar con una cantidad de BNB
-     * @param bnbAmount Cantidad de BNB
-     */
-    function calculateTokenAmount(uint256 bnbAmount) external view returns (uint256) {
-        if (bnbAmount == 0) return 0;
-        uint256 price = phasePrice[currentPhase];
-        if (price == 0) return 0;
-        return bnbAmount * 10**18 / price;
-    }
-
-    /**
-     * @dev Calcula cuánto BNB se necesita para comprar una cantidad de tokens
-     * @param tokenAmount Cantidad de tokens
-     */
-    function calculateBNBAmount(uint256 tokenAmount) external view returns (uint256) {
-        if (tokenAmount == 0) return 0;
-        uint256 price = phasePrice[currentPhase];
-        return tokenAmount * price / 10**18;
-    }
-
-    // ================= FUNCIONES DE RESCATE =================
-
-    /**
-     * @dev Rescata tokens enviados por error al contrato
-     * @param tokenAddress Dirección del token a rescatar
-     */
-    function rescueTokens(address tokenAddress) external onlyOwner {
-        require(tokenAddress != address(0), "CryptoGatoPresale: zero address");
-        require(tokenAddress != cryptoGatoAddress, "CryptoGatoPresale: cannot rescue main token");
-
-        IERC20 token = IERC20(tokenAddress);
-        uint256 balance = token.balanceOf(address(this));
-        
-        if (balance > 0) {
-            token.safeTransfer(owner(), balance);
-        }
-    }
-
-    // ================= FUNCIÓN PARA RECIBIR BNB =================
-
-    /**
-     * @dev Permite al contrato recibir BNB
+     * @dev Permite recibir BNB
      */
     receive() external payable {}
 }

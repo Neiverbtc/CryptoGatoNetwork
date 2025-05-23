@@ -316,287 +316,445 @@ contract CryptoGato is ERC20, Ownable, Pausable, ReentrancyGuard {
         require(!isMinter[minter], "CryptoGato: address is already a minter");
 
         bytes32 operationId = keccak256(abi.encode("addMinter", minter));
-        uint256 executeTime = block.timestamp + TIMELOCK_DURATION;
-        timelockOperations[operationId] = executeTime;
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
 
-        emit TimelockOperationScheduled(operationId, executeTime);
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
     /**
-     * @dev Ejecuta la adición de un minter programada
+     * @dev Ejecuta la adición de un minter después del timelock
      * @param minter Dirección a añadir como minter
      */
     function executeAddMinter(address minter) external onlyOwner {
         bytes32 operationId = keccak256(abi.encode("addMinter", minter));
-        uint256 executeTime = timelockOperations[operationId];
-
-        if (executeTime == 0) 
-            revert CGErrors.OperationNotScheduled(operationId);
-        if (block.timestamp < executeTime) 
-            revert CGErrors.TimelockNotExpired(operationId, executeTime);
+        require(timelockOperations[operationId] > 0, "CryptoGato: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGato: timelock not expired");
 
         delete timelockOperations[operationId];
-        isMinter[minter] = true;
 
+        isMinter[minter] = true;
         emit MinterAdded(minter);
         emit TimelockOperationExecuted(operationId);
     }
 
     /**
-     * @dev Elimina un minter (sin timelock para mayor flexibilidad de seguridad)
+     * @dev Elimina una dirección de la lista de minters autorizados
      * @param minter Dirección a eliminar como minter
      */
     function removeMinter(address minter) external onlyOwner {
-        require(minter != address(0), "CryptoGato: invalid minter address");
-        require(isMinter[minter], "CryptoGato: address is not a minter");
-        require(minter != owner(), "CryptoGato: cannot remove owner as minter");
+        require(isMinter[minter], "CryptoGato: not a minter");
 
         isMinter[minter] = false;
         emit MinterRemoved(minter);
     }
 
-    // ================= GESTIÓN DE LÍMITES Y FEES =================
+    // ================= GESTIÓN DE LÍMITES Y EXCLUSIONES =================
 
     /**
-     * @dev Actualiza el límite máximo por transacción
-     * @param newAmount Nuevo límite (debe ser mayor a 0.1% del suministro total)
+     * @dev Programa la actualización del límite máximo por transacción con timelock
+     * @param amount Nuevo límite máximo por transacción
      */
-    function updateMaxTxAmount(uint256 newAmount) external onlyOwner {
-        require(newAmount >= totalSupply() / 1000, "CryptoGato: amount too low"); // Mínimo 0.1%
-        require(newAmount <= totalSupply() / 100, "CryptoGato: amount too high"); // Máximo 1%
+    function scheduleSetMaxTxAmount(uint256 amount) external onlyOwner {
+        require(amount >= MAX_SUPPLY * 1 / 1000, "CryptoGato: amount too low");
+        require(amount <= MAX_SUPPLY * 50 / 1000, "CryptoGato: amount too high");
 
-        maxTxAmount = newAmount;
-        emit MaxTxAmountUpdated(newAmount);
+        bytes32 operationId = keccak256(abi.encode("setMaxTxAmount", amount));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
+
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
     /**
-     * @dev Actualiza el límite máximo por wallet
-     * @param newAmount Nuevo límite (debe ser mayor a 0.5% del suministro total)
+     * @dev Ejecuta la actualización del límite máximo por transacción después del timelock
+     * @param amount Nuevo límite máximo por transacción
      */
-    function updateMaxWalletAmount(uint256 newAmount) external onlyOwner {
-        require(newAmount >= totalSupply() * 5 / 1000, "CryptoGato: amount too low"); // Mínimo 0.5%
-        require(newAmount <= totalSupply() / 50, "CryptoGato: amount too high"); // Máximo 2%
+    function executeSetMaxTxAmount(uint256 amount) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("setMaxTxAmount", amount));
+        require(timelockOperations[operationId] > 0, "CryptoGato: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGato: timelock not expired");
 
-        maxWalletAmount = newAmount;
-        emit MaxWalletAmountUpdated(newAmount);
+        delete timelockOperations[operationId];
+
+        maxTxAmount = amount;
+        emit MaxTxAmountUpdated(amount);
+        emit TimelockOperationExecuted(operationId);
     }
 
     /**
-     * @dev Actualiza el fee de liquidez
-     * @param newFee Nuevo fee (en base 10000, máximo 10%)
+     * @dev Programa la actualización del límite máximo por wallet con timelock
+     * @param amount Nuevo límite máximo por wallet
      */
-    function updateLiquidityFee(uint256 newFee) external onlyOwner {
-        if (newFee > 1000) revert CGErrors.FeeExceedsMax(newFee); // Máximo 10%
+    function scheduleSetMaxWalletAmount(uint256 amount) external onlyOwner {
+        require(amount >= MAX_SUPPLY * 5 / 1000, "CryptoGato: amount too low");
+        require(amount <= MAX_SUPPLY * 100 / 1000, "CryptoGato: amount too high");
+
+        bytes32 operationId = keccak256(abi.encode("setMaxWalletAmount", amount));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
+
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
+    }
+
+    /**
+     * @dev Ejecuta la actualización del límite máximo por wallet después del timelock
+     * @param amount Nuevo límite máximo por wallet
+     */
+    function executeSetMaxWalletAmount(uint256 amount) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("setMaxWalletAmount", amount));
+        require(timelockOperations[operationId] > 0, "CryptoGato: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGato: timelock not expired");
+
+        delete timelockOperations[operationId];
+
+        maxWalletAmount = amount;
+        emit MaxWalletAmountUpdated(amount);
+        emit TimelockOperationExecuted(operationId);
+    }
+
+    /**
+     * @dev Excluye o incluye una dirección en los límites de transacción y wallet
+     * @param account Dirección a excluir/incluir
+     * @param exempt True para excluir, false para incluir
+     */
+    function setExemptFromLimits(address account, bool exempt) external onlyOwner {
+        if (account == address(0)) revert CGErrors.ZeroAddress();
+
+        isExemptFromLimits[account] = exempt;
+        emit AddressExemptedFromLimits(account, exempt);
+    }
+
+    /**
+     * @dev Excluye o incluye una dirección en los fees
+     * @param account Dirección a excluir/incluir
+     * @param exempt True para excluir, false para incluir
+     */
+    function setExemptFromFees(address account, bool exempt) external onlyOwner {
+        if (account == address(0)) revert CGErrors.ZeroAddress();
+
+        isExemptFromFees[account] = exempt;
+        emit AddressExemptedFromFees(account, exempt);
+    }
+
+    // ================= GESTIÓN DE FEES Y LIQUIDEZ =================
+
+    /**
+     * @dev Programa la actualización del fee de liquidez con timelock
+     * @param newFee Nuevo fee de liquidez (base 10000)
+     */
+    function scheduleSetLiquidityFee(uint256 newFee) external onlyOwner {
+        if (newFee > 1000) revert CGErrors.FeeExceedsMax(newFee);
+
+        bytes32 operationId = keccak256(abi.encode("setLiquidityFee", newFee));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
+
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
+    }
+
+    /**
+     * @dev Ejecuta la actualización del fee de liquidez después del timelock
+     * @param newFee Nuevo fee de liquidez (base 10000)
+     */
+    function executeSetLiquidityFee(uint256 newFee) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("setLiquidityFee", newFee));
+        if (timelockOperations[operationId] == 0) 
+            revert CGErrors.OperationNotScheduled(operationId);
+        if (block.timestamp < timelockOperations[operationId]) 
+            revert CGErrors.TimelockNotExpired(operationId, timelockOperations[operationId]);
+
+        delete timelockOperations[operationId];
 
         liquidityFee = newFee;
         emit LiquidityFeeUpdated(newFee);
+        emit TimelockOperationExecuted(operationId);
     }
 
     /**
-     * @dev Actualiza el umbral para swap automático
+     * @dev Actualiza el umbral para ejecutar swap a liquidez
      * @param newThreshold Nuevo umbral
      */
-    function updateSwapThreshold(uint256 newThreshold) external onlyOwner {
-        if (newThreshold < 1000 * 10**_decimals) revert CGErrors.ThresholdTooLow();
+    function setSwapThreshold(uint256 newThreshold) external onlyOwner {
+        if (newThreshold == 0) revert CGErrors.ThresholdTooLow();
 
         swapThreshold = newThreshold;
         emit SwapThresholdUpdated(newThreshold);
     }
 
-    // ================= GESTIÓN DE EXENCIONES =================
-
     /**
-     * @dev Excluye o incluye una dirección de los límites de transacción
-     * @param account Dirección a configurar
-     * @param status true para exentar, false para incluir
+     * @dev Actualiza el slippage mínimo aceptable para swaps
+     * @param newSlippage Nuevo slippage mínimo (base 10000)
      */
-    function setExemptFromLimits(address account, bool status) external onlyOwner {
-        if (account == address(0)) revert CGErrors.ZeroAddress();
+    function setMinSlippage(uint256 newSlippage) external onlyOwner {
+        if (newSlippage == 0 || newSlippage > 1000) revert CGErrors.InvalidSlippage(newSlippage);
 
-        isExemptFromLimits[account] = status;
-        emit AddressExemptedFromLimits(account, status);
+        minSlippage = newSlippage;
+        emit MinSlippageUpdated(newSlippage);
     }
 
     /**
-     * @dev Excluye o incluye una dirección de los fees
-     * @param account Dirección a configurar
-     * @param status true para exentar, false para incluir
+     * @dev Programa la actualización del router de PancakeSwap con timelock
+     * @param newRouter Dirección del nuevo router
      */
-    function setExemptFromFees(address account, bool status) external onlyOwner {
-        if (account == address(0)) revert CGErrors.ZeroAddress();
+    function scheduleUpdatePancakeRouter(address newRouter) external onlyOwner {
+        if (newRouter == address(0)) revert CGErrors.ZeroAddress();
 
-        isExemptFromFees[account] = status;
-        emit AddressExemptedFromFees(account, status);
-    }
+        bytes32 operationId = keccak256(abi.encode("updatePancakeRouter", newRouter));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
 
-    // ================= GESTIÓN DE TRADING =================
-
-    /**
-     * @dev Habilita el trading (solo una vez)
-     */
-    function enableTrading() external onlyOwner {
-        require(!tradingEnabled, "CryptoGato: trading already enabled");
-
-        tradingEnabled = true;
-        emit TradingEnabled(block.timestamp);
-        emit TradingStatusUpdated(true);
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
     /**
-     * @dev Actualiza el router de PancakeSwap
-     * @param newRouter Nueva dirección del router
+     * @dev Ejecuta la actualización del router de PancakeSwap después del timelock
+     * @param newRouter Dirección del nuevo router
      */
-    function updatePancakeRouter(address newRouter) external onlyOwner {
-        require(newRouter != address(0), "CryptoGato: zero router address");
+    function executeUpdatePancakeRouter(address newRouter) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("updatePancakeRouter", newRouter));
+        if (timelockOperations[operationId] == 0)
+            revert CGErrors.OperationNotScheduled(operationId);
+        if (block.timestamp < timelockOperations[operationId])
+            revert CGErrors.TimelockNotExpired(operationId, timelockOperations[operationId]);
 
-        pancakeRouter = IPancakeRouter02(newRouter);
-        
-        // Crear nuevo par si no existe
-        address newPair = IPancakeFactory(pancakeRouter.factory()).getPair(
+        delete timelockOperations[operationId];
+
+        IPancakeRouter02 _pancakeRouter = IPancakeRouter02(newRouter);
+        pancakeRouter = _pancakeRouter;
+
+        // Actualizar par de liquidez
+        address _pancakeFactory = _pancakeRouter.factory();
+        pancakePair = IPancakeFactory(_pancakeFactory).createPair(
             address(this),
-            pancakeRouter.WETH()
+            _pancakeRouter.WETH()
         );
-        
-        if (newPair == address(0)) {
-            newPair = IPancakeFactory(pancakeRouter.factory()).createPair(
-                address(this),
-                pancakeRouter.WETH()
-            );
-        }
-        
-        pancakePair = newPair;
+
         emit PancakeRouterUpdated(newRouter);
-    }
-
-    // ================= FUNCIONES DE TRANSFERENCIA =================
-
-    /**
-     * @dev Sobrescribe la función de transferencia para implementar fees y límites
-     */
-    function _transfer(address from, address to, uint256 amount) internal override {
-        if (from == address(0)) revert CGErrors.ZeroAddress();
-        if (to == address(0)) revert CGErrors.ZeroAddress();
-        if (amount == 0) {
-            super._transfer(from, to, 0);
-            return;
-        }
-
-        // Verificar si el trading está habilitado
-        if (!tradingEnabled) {
-            require(
-                isExemptFromLimits[from] || isExemptFromLimits[to],
-                "CryptoGato: trading not enabled"
-            );
-        }
-
-        // Verificar límites de transacción
-        if (!isExemptFromLimits[from] && !isExemptFromLimits[to]) {
-            if (amount > maxTxAmount) 
-                revert CGErrors.MaxTxAmountExceeded(amount, maxTxAmount);
-
-            // Verificar límite de wallet (solo para compras)
-            if (to != pancakePair && balanceOf(to) + amount > maxWalletAmount) 
-                revert CGErrors.MaxWalletAmountExceeded(balanceOf(to) + amount, maxWalletAmount);
-        }
-
-        // Ejecutar swap si es necesario
-        if (!inSwap && to == pancakePair && balanceOf(address(this)) >= swapThreshold) {
-            swapAndLiquify();
-        }
-
-        // Calcular y aplicar fees
-        bool takeFee = !inSwap && 
-                       !isExemptFromFees[from] && 
-                       !isExemptFromFees[to] &&
-                       (from == pancakePair || to == pancakePair);
-
-        if (takeFee && liquidityFee > 0) {
-            uint256 feeAmount = CryptoGatoUtils.calculateBps(amount, liquidityFee);
-            tokensForLiquidity += feeAmount;
-            
-            super._transfer(from, address(this), feeAmount);
-            amount -= feeAmount;
-        }
-
-        super._transfer(from, to, amount);
+        emit TimelockOperationExecuted(operationId);
     }
 
     /**
-     * @dev Convierte tokens acumulados en BNB y añade liquidez
+     * @dev Programa la actualización del estado del trading con timelock
+     * @param enabled True para habilitar, false para deshabilitar
      */
-    function swapAndLiquify() private lockTheSwap {
-        uint256 contractTokenBalance = balanceOf(address(this));
-        
-        if (contractTokenBalance < swapThreshold) return;
+    function scheduleSetTradingEnabled(bool enabled) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("setTradingEnabled", enabled));
+        timelockOperations[operationId] = block.timestamp + TIMELOCK_DURATION;
 
-        // Dividir tokens: la mitad para swap, la mitad para liquidez
-        uint256 half = contractTokenBalance / 2;
-        uint256 otherHalf = contractTokenBalance - half;
-
-        uint256 initialBNBBalance = address(this).balance;
-
-        // Swap de la primera mitad por BNB
-        swapTokensForBNB(half);
-
-        uint256 newBNBBalance = address(this).balance - initialBNBBalance;
-
-        // Añadir liquidez con la segunda mitad de tokens y el BNB obtenido
-        if (newBNBBalance > 0 && otherHalf > 0) {
-            addLiquidity(otherHalf, newBNBBalance);
-        }
-
-        // Resetear contador de tokens para liquidez
-        tokensForLiquidity = 0;
+        emit TimelockOperationScheduled(operationId, timelockOperations[operationId]);
     }
 
     /**
-     * @dev Intercambia tokens por BNB
-     * @param tokenAmount Cantidad de tokens a intercambiar
+     * @dev Ejecuta la actualización del estado del trading después del timelock
+     * @param enabled True para habilitar, false para deshabilitar
      */
-    function swapTokensForBNB(uint256 tokenAmount) private {
+    function executeSetTradingEnabled(bool enabled) external onlyOwner {
+        bytes32 operationId = keccak256(abi.encode("setTradingEnabled", enabled));
+        require(timelockOperations[operationId] > 0, "CryptoGato: operation not scheduled");
+        require(block.timestamp >= timelockOperations[operationId], "CryptoGato: timelock not expired");
+
+        delete timelockOperations[operationId];
+
+        tradingEnabled = enabled;
+        emit TradingStatusUpdated(enabled);
+
+        // Emitir evento específico cuando se habilita el trading por primera vez
+        if (enabled) {
+            emit TradingEnabled(block.timestamp);
+        }
+
+        emit TimelockOperationExecuted(operationId);
+    }
+
+    /**
+     * @dev Ejecuta manualmente el swap a liquidez
+     */
+    function swapAndLiquify() external whenNotPaused nonReentrant {
+        require(tokensForLiquidity >= swapThreshold, "CryptoGato: below threshold");
+        _swapAndLiquify(tokensForLiquidity);
+    }
+
+    /**
+     * @dev Implementación interna del swap a liquidez con manejo de errores
+     * @param tokenAmount Cantidad de tokens a swappear
+     */
+    function _swapAndLiquify(uint256 tokenAmount) private lockTheSwap {
+        // Dividir el balance en dos partes: una para swap a BNB, otra para añadir liquidez
+        uint256 half = tokenAmount / 2;
+        uint256 otherHalf = tokenAmount - half;
+
+        // Calcular BNB esperado para la mitad de los tokens
+        uint256 initialBalance = address(this).balance;
+
+        // Intentar hacer swap de tokens a BNB con manejo de errores
+        try this._safeSwapTokensForBNB(half) {
+            // Calcular cuánto BNB hemos recibido
+            uint256 newBalance = address(this).balance - initialBalance;
+
+            if (newBalance > 0) {
+                // Intentar añadir liquidez con la otra mitad
+                try this._safeAddLiquidity(otherHalf, newBalance) {
+                    emit LiquidityAdded(otherHalf, newBalance);
+                    // Resetear contador de tokens para liquidez solo si todo fue exitoso
+                    tokensForLiquidity = 0;
+                } catch {
+                    // Si falla al añadir liquidez, emitir evento de error
+                    emit LiquidityAdditionFailed(otherHalf, newBalance);
+                }
+            } else {
+                // Si no recibimos BNB del swap, mantener los tokens para el próximo intento
+                emit SwapFailed(half);
+            }
+        } catch {
+            // Si falla el swap, emitir evento de error
+            emit SwapFailed(half);
+        }
+    }
+
+    /**
+     * @dev Función externa para permitir el uso de try/catch
+     * @param tokenAmount Cantidad de tokens a swappear
+     */
+    function _safeSwapTokensForBNB(uint256 tokenAmount) external onlyThis {
+        _swapTokensForBNB(tokenAmount);
+    }
+
+    /**
+     * @dev Función externa para permitir el uso de try/catch
+     * @param tokenAmount Cantidad de tokens a añadir
+     * @param bnbAmount Cantidad de BNB a añadir
+     */
+    function _safeAddLiquidity(uint256 tokenAmount, uint256 bnbAmount) external onlyThis {
+        _addLiquidity(tokenAmount, bnbAmount);
+    }
+
+    /**
+     * @dev Modificador que solo permite que el contrato se llame a sí mismo
+     */
+    modifier onlyThis() {
+        if (msg.sender != address(this)) revert CGErrors.NotThisContract();
+        _;
+    }
+
+    /**
+     * @dev Swap de tokens a BNB con protección contra manipulación de precio
+     * @param tokenAmount Cantidad de tokens a swappear
+     */
+    function _swapTokensForBNB(uint256 tokenAmount) private {
         address[] memory path = new address[](2);
         path[0] = address(this);
         path[1] = pancakeRouter.WETH();
 
         _approve(address(this), address(pancakeRouter), tokenAmount);
 
-        try pancakeRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
+        // Obtener estimación de BNB a recibir
+        uint256[] memory amountsOut = pancakeRouter.getAmountsOut(tokenAmount, path);
+        uint256 expectedBnb = amountsOut[1];
+
+        // Calcular mínimo aceptable con slippage usando la biblioteca
+        uint256 minBnb = CryptoGatoUtils.calculateMinAmountWithSlippage(expectedBnb, minSlippage);
+
+        pancakeRouter.swapExactTokensForETHSupportingFeeOnTransferTokens(
             tokenAmount,
-            0, // Aceptar cualquier cantidad de BNB
+            minBnb, // Mínimo BNB a recibir con slippage
             path,
             address(this),
             block.timestamp
-        ) {} catch {
-            emit SwapFailed(tokenAmount);
-        }
+        );
     }
 
-    /**
-     * @dev Añade liquidez al par CGATO/BNB
-     * @param tokenAmount Cantidad de tokens
-     * @param bnbAmount Cantidad de BNB
+        /**
+     * @dev Añade liquidez al par token-BNB
+     * @param tokenAmount Cantidad de tokens a añadir
+     * @param bnbAmount Cantidad de BNB a añadir
      */
-    function addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
+    function _addLiquidity(uint256 tokenAmount, uint256 bnbAmount) private {
         _approve(address(this), address(pancakeRouter), tokenAmount);
 
-        try pancakeRouter.addLiquidityETH{value: bnbAmount}(
+        // Calcular mínimos aceptables con slippage usando la biblioteca
+        uint256 minTokens = CryptoGatoUtils.calculateMinAmountWithSlippage(tokenAmount, minSlippage);
+        uint256 minBnb = CryptoGatoUtils.calculateMinAmountWithSlippage(bnbAmount, minSlippage);
+
+        // Añadir liquidez a PancakeSwap
+        pancakeRouter.addLiquidityETH{value: bnbAmount}(
             address(this),
             tokenAmount,
-            0, // Acepta cualquier cantidad de tokens
-            0, // Acepta cualquier cantidad de BNB
-            owner(),
+            minTokens, // Mínimo de tokens con slippage
+            minBnb,    // Mínimo de BNB con slippage
+            owner(),   // LP tokens van al owner
             block.timestamp
+        );
+    }
+
+    // ================= TRANSFERENCIA Y FUNCIONES OVERRIDE =================
+
+    /**
+     * @dev Sobrecarga la función _update para implementar fees y límites
+     */
+    function _update(address from, address to, uint256 amount) internal override whenNotPaused {
+        if (
+            from != address(0) && // No es mint
+            to != address(0) &&   // No es burn
+            !inSwap               // No estamos en proceso de swap
         ) {
-            emit LiquidityAdded(tokenAmount, bnbAmount);
-        } catch {
-            emit LiquidityAdditionFailed(tokenAmount, bnbAmount);
+            // Aplicar restricciones y fees solo si trading está habilitado 
+            // o si ambas direcciones están exentas
+            bool applyRestrictions = tradingEnabled || 
+                (isExemptFromLimits[from] && isExemptFromLimits[to]);
+
+            if (applyRestrictions) {
+                // Comprobar límites de transacción y wallet
+                if (!isExemptFromLimits[from] && !isExemptFromLimits[to]) {
+                    require(amount <= maxTxAmount, "CryptoGato: exceeds max tx amount");
+
+                    // Comprobar límite de wallet solo para recipientes (no para ventas)
+                    if (to != pancakePair) {
+                        uint256 recipientBalance = balanceOf(to);
+                        require(
+                            recipientBalance + amount <= maxWalletAmount,
+                            "CryptoGato: exceeds max wallet amount"
+                        );
+                    }
+                }
+
+                // Comprobar si debemos aplicar fee
+                if (
+                    !isExemptFromFees[from] && 
+                    !isExemptFromFees[to] && 
+                    liquidityFee > 0
+                ) {
+                    uint256 feeAmount = amount * liquidityFee / 10000;
+
+                    if (feeAmount > 0) {
+                        // Transferir fee al contrato para liquidez
+                        super._update(from, address(this), feeAmount);
+                        tokensForLiquidity += feeAmount;
+
+                        // Reducir la cantidad que llegará al destinatario
+                        amount = amount - feeAmount;
+                    }
+
+                    // Comprobar si debemos swappear
+                    if (
+                        to == pancakePair && // Solo en ventas
+                        tokensForLiquidity >= swapThreshold && 
+                        !inSwap
+                    ) {
+                        _swapAndLiquify(tokensForLiquidity);
+                    }
+                }
+            } else {
+                // Si trading no está habilitado, solo permitir transferencias a/desde direcciones exentas
+                require(
+                    isExemptFromLimits[from] || isExemptFromLimits[to],
+                    "CryptoGato: trading not enabled yet"
+                );
+            }
         }
+
+        super._update(from, to, amount);
     }
 
     // ================= FUNCIONES DE PAUSA =================
 
     /**
-     * @dev Pausa el contrato
+     * @dev Pausa el contrato (suspende las transferencias)
      */
     function pause() external onlyOwner {
         _pause();
@@ -604,7 +762,7 @@ contract CryptoGato is ERC20, Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @dev Reanuda el contrato
+     * @dev Reanuda el contrato (permite transferencias)
      */
     function unpause() external onlyOwner {
         _unpause();
@@ -614,94 +772,43 @@ contract CryptoGato is ERC20, Ownable, Pausable, ReentrancyGuard {
     // ================= FUNCIONES DE RESCATE =================
 
     /**
-     * @dev Rescata tokens enviados por error al contrato
+     * @dev Rescata tokens ERC20 enviados por error al contrato
      * @param tokenAddress Dirección del token a rescatar
-     * @param recipient Dirección que recibirá los tokens
+     * @param to Dirección a la que enviar los tokens
+     * @param amount Cantidad de tokens a rescatar
      */
-    function rescueTokens(address tokenAddress, address recipient) external onlyOwner {
-        if (tokenAddress == address(0)) revert CGErrors.ZeroAddress();
-        if (recipient == address(0)) revert CGErrors.ZeroAddress();
-        if (tokenAddress == address(this)) revert CGErrors.NotThisContract();
+    function rescueTokens(address tokenAddress, address to, uint256 amount) external onlyOwner {
+        if (tokenAddress == address(this)) revert CGErrors.Unauthorized();
+        if (to == address(0)) revert CGErrors.ZeroAddress();
 
         IERC20 token = IERC20(tokenAddress);
         uint256 balance = token.balanceOf(address(this));
-        
-        if (balance > 0) {
-            token.transfer(recipient, balance);
-            emit TokensRescued(tokenAddress, recipient, balance);
-        }
+        if (amount > balance) revert CGErrors.InsufficientBalance(amount, balance);
+
+        bool success = token.transfer(to, amount);
+        if (!success) revert CGErrors.TransferFailed(tokenAddress, to, amount);
+
+        emit TokensRescued(tokenAddress, to, amount);
     }
 
     /**
-     * @dev Rescata BNB enviados por error al contrato
-     * @param recipient Dirección que recibirá el BNB
+     * @dev Rescata BNB enviado por error al contrato
+     * @param to Dirección a la que enviar el BNB
+     * @param amount Cantidad de BNB a rescatar
      */
-    function rescueBNB(address payable recipient) external onlyOwner {
-        if (recipient == address(0)) revert CGErrors.ZeroAddress();
+    function rescueBNB(address payable to, uint256 amount) external onlyOwner {
+        if (to == address(0)) revert CGErrors.ZeroAddress();
 
         uint256 balance = address(this).balance;
-        if (balance > 0) {
-            (bool success, ) = recipient.call{value: balance}("");
-            require(success, "CryptoGato: BNB transfer failed");
-            emit BNBRescued(recipient, balance);
-        }
+        if (amount > balance) revert CGErrors.InsufficientBalance(amount, balance);
+
+        (bool success, ) = to.call{value: amount}("");
+        if (!success) revert CGErrors.FailedToSendBNB(to, amount);
+
+        emit BNBRescued(to, amount);
     }
 
-    // ================= FUNCIONES DE VISTA =================
-
-    /**
-     * @dev Retorna información completa del contrato
-     */
-    function getContractInfo() external view returns (
-        uint256 _totalSupply,
-        uint256 _maxSupply,
-        uint256 _maxTxAmount,
-        uint256 _maxWalletAmount,
-        uint256 _liquidityFee,
-        uint256 _swapThreshold,
-        bool _tradingEnabled,
-        address _pancakeRouter,
-        address _pancakePair
-    ) {
-        return (
-            totalSupply(),
-            MAX_SUPPLY,
-            maxTxAmount,
-            maxWalletAmount,
-            liquidityFee,
-            swapThreshold,
-            tradingEnabled,
-            address(pancakeRouter),
-            pancakePair
-        );
-    }
-
-    /**
-     * @dev Retorna información de todas las categorías
-     */
-    function getAllCategoriesInfo() external view returns (
-        uint8[] memory categories,
-        uint256[] memory percentages,
-        uint256[] memory limits,
-        uint256[] memory minted,
-        uint256[] memory available
-    ) {
-        categories = new uint8[](6);
-        percentages = new uint256[](6);
-        limits = new uint256[](6);
-        minted = new uint256[](6);
-        available = new uint256[](6);
-
-        for (uint8 i = 1; i <= 6; i++) {
-            categories[i-1] = i;
-            percentages[i-1] = categoryPercentages[i];
-            limits[i-1] = CryptoGatoUtils.calculateCategoryLimit(MAX_SUPPLY, categoryPercentages[i]);
-            minted[i-1] = categoryMinted[i];
-            available[i-1] = limits[i-1] - minted[i-1];
-        }
-    }
-
-    // ================= FUNCIONES DE CANCELACIÓN DE TIMELOCK =================
+    // ================= FUNCIONES DE TIMELOCK =================
 
     /**
      * @dev Cancela una operación programada con timelock
@@ -715,15 +822,17 @@ contract CryptoGato is ERC20, Ownable, Pausable, ReentrancyGuard {
         emit TimelockOperationCancelled(operationId);
     }
 
-    // ================= FUNCIONES PARA RECIBIR BNB =================
+    // ================= FUNCIONES UTILITARIAS =================
 
     /**
-     * @dev Permite al contrato recibir BNB
+     * @dev Retorna los decimales del token
+     */
+    function decimals() public pure override returns (uint8) {
+        return _decimals;
+    }
+
+    /**
+     * @dev Permite recibir BNB (necesario para recibir BNB del swap)
      */
     receive() external payable {}
-
-    /**
-     * @dev Función fallback para recibir BNB
-     */
-    fallback() external payable {}
 }
