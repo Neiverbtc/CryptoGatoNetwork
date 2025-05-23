@@ -153,14 +153,18 @@ function App() {
         }}>
           {/* Logo */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div style={{
-              background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
-              padding: '12px',
-              borderRadius: '15px',
-              fontSize: '24px'
-            }}>
-              🐱
-            </div>
+            <img 
+              src="/src/assets/cryptogato-logo.png" 
+              alt="CryptoGato Logo"
+              style={{
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                border: '2px solid rgba(139, 92, 246, 0.5)',
+                background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
+                padding: '2px'
+              }}
+            />
             <div>
               <h1 style={{ 
                 fontSize: '28px', 
