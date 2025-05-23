@@ -48,8 +48,8 @@ describe("CryptoGato Token", function () {
 
         it("Should set initial limits correctly", async function () {
             const maxSupply = await cryptoGato.MAX_SUPPLY();
-            expect(await cryptoGato.maxTxAmount()).to.equal(maxSupply.mul(5).div(1000)); // 0.5%
-            expect(await cryptoGato.maxWalletAmount()).to.equal(maxSupply.mul(20).div(1000)); // 2%
+            expect(await cryptoGato.maxTxAmount()).to.equal(maxSupply * 5n / 1000n); // 0.5%
+            expect(await cryptoGato.maxWalletAmount()).to.equal(maxSupply * 20n / 1000n); // 2%
         });
     });
 
@@ -89,8 +89,8 @@ describe("CryptoGato Token", function () {
         it("Should not exceed category limits", async function () {
             const category = 1; // Presale - 30% of max supply
             const maxSupply = await cryptoGato.MAX_SUPPLY();
-            const categoryLimit = maxSupply.mul(300).div(1000);
-            const excessAmount = categoryLimit.add(1);
+            const categoryLimit = maxSupply * 300n / 1000n;
+            const excessAmount = categoryLimit + 1n;
 
             await expectRevert(
                 cryptoGato.mint(addr1.address, excessAmount, category),
@@ -100,7 +100,7 @@ describe("CryptoGato Token", function () {
 
         it("Should not exceed max supply", async function () {
             const maxSupply = await cryptoGato.MAX_SUPPLY();
-            const excessAmount = maxSupply.add(1);
+            const excessAmount = maxSupply + 1n;
 
             await expectRevert(
                 cryptoGato.mint(addr1.address, excessAmount, 1),
@@ -169,7 +169,7 @@ describe("CryptoGato Token", function () {
                 .to.emit(cryptoGato, "TokensBurned")
                 .withArgs(addr1.address, burnAmount);
 
-            expect(await cryptoGato.balanceOf(addr1.address)).to.equal(initialBalance.sub(burnAmount));
+            expect(await cryptoGato.balanceOf(addr1.address)).to.equal(initialBalance - burnAmount);
         });
 
         it("Should allow burning from with allowance", async function () {
@@ -185,7 +185,7 @@ describe("CryptoGato Token", function () {
 
         it("Should not allow burning more than balance", async function () {
             const balance = await cryptoGato.balanceOf(addr1.address);
-            const excessAmount = balance.add(1);
+            const excessAmount = balance + 1n;
 
             await expectRevert(
                 cryptoGato.connect(addr1).burn(excessAmount),
@@ -305,7 +305,7 @@ describe("CryptoGato Token", function () {
             
             for (let category = 1; category <= 6; category++) {
                 const percentage = await cryptoGato.categoryPercentages(category);
-                const expectedLimit = maxSupply.mul(percentage).div(1000);
+                const expectedLimit = maxSupply * BigInt(percentage) / 1000n;
                 const actualLimit = await cryptoGato.getCategoryLimit(category);
                 
                 expect(actualLimit).to.equal(expectedLimit);
@@ -321,7 +321,7 @@ describe("CryptoGato Token", function () {
             await cryptoGato.mint(addr1.address, mintAmount, category);
             
             const finalAvailable = await cryptoGato.getCategoryAvailable(category);
-            expect(finalAvailable).to.equal(initialAvailable.sub(mintAmount));
+            expect(finalAvailable).to.equal(initialAvailable - mintAmount);
         });
 
         it("Should return all categories info", async function () {
