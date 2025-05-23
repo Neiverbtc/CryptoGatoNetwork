@@ -7,7 +7,7 @@ const { expect } = require("chai");
  * @returns {BigNumber} Parsed amount
  */
 function parseTokens(amount) {
-    return ethers.utils.parseEther(amount);
+    return ethers.parseEther(amount);
 }
 
 /**
@@ -16,7 +16,7 @@ function parseTokens(amount) {
  * @returns {string} Formatted amount
  */
 function formatTokens(amount) {
-    return ethers.utils.formatEther(amount);
+    return ethers.formatEther(amount);
 }
 
 /**
@@ -25,7 +25,7 @@ function formatTokens(amount) {
  * @returns {BigNumber} Parsed amount
  */
 function parseBNB(amount) {
-    return ethers.utils.parseEther(amount);
+    return ethers.parseEther(amount);
 }
 
 /**
@@ -306,9 +306,9 @@ async function setupTokenBalances(token, accounts, amount) {
  * Constants for testing
  */
 const TEST_CONSTANTS = {
-    ZERO_ADDRESS: ethers.constants.AddressZero,
-    MAX_UINT256: ethers.constants.MaxUint256,
-    ONE_ETHER: ethers.utils.parseEther("1"),
+    ZERO_ADDRESS: ethers.ZeroAddress,
+    MAX_UINT256: ethers.MaxUint256,
+    ONE_ETHER: ethers.parseEther("1"),
     ONE_TOKEN: parseTokens("1"),
     ONE_DAY: 24 * 60 * 60,
     ONE_WEEK: 7 * 24 * 60 * 60,
