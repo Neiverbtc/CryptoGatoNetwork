@@ -11,7 +11,7 @@ async function main() {
     console.log("=".repeat(50));
     console.log(`📍 Red: ${network.name} (ChainID: ${network.chainId})`);
     console.log(`👤 Deployer: ${deployer.address}`);
-    console.log(`💰 Balance: ${ethers.utils.formatEther(await deployer.getBalance())} BNB`);
+    console.log(`💰 Balance: ${ethers.formatEther(await deployer.provider.getBalance(deployer.address))} BNB`);
     console.log("=".repeat(50));
 
     // Verificar que tenemos la configuración de red
@@ -37,14 +37,14 @@ async function main() {
     console.log("1️⃣  Desplegando CryptoGatoPresale...");
     const CryptoGatoPresale = await ethers.getContractFactory("CryptoGatoPresale");
     const presale = await CryptoGatoPresale.deploy(treasuryWallet);
-    await presale.deployed();
+    await presale.waitForDeployment();
     
-    console.log(`✅ CryptoGatoPresale desplegado en: ${presale.address}`);
-    console.log(`   TX Hash: ${presale.deployTransaction.hash}`);
+    console.log(`✅ CryptoGatoPresale desplegado en: ${await presale.getAddress()}`);
+    console.log(`   TX Hash: ${presale.deploymentTransaction().hash}`);
 
     // Esperar confirmaciones
     console.log("⏳ Esperando confirmaciones...");
-    await presale.deployTransaction.wait(networkConfig.confirmations || 5);
+    await presale.deploymentTransaction().wait(networkConfig.confirmations || 5);
 
     // 2. Configurar el token CryptoGato para añadir el contrato de preventa como minter
     console.log("\n2️⃣  Configurando permisos de minter...");
