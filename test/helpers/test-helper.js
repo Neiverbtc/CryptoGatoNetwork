@@ -195,12 +195,18 @@ async function deployTestFixture() {
     const MockPancakeFactory = await ethers.getContractFactory("MockPancakeFactory");
 
     const mockFactory = await MockPancakeFactory.deploy();
+    await mockFactory.waitForDeployment();
+    
     const wbnb = await MockERC20.deploy("Wrapped BNB", "WBNB", 18);
-    const mockRouter = await MockPancakeRouter.deploy(mockFactory.address, wbnb.address);
+    await wbnb.waitForDeployment();
+    
+    const mockRouter = await MockPancakeRouter.deploy(await mockFactory.getAddress(), await wbnb.getAddress());
+    await mockRouter.waitForDeployment();
 
     // Deploy CryptoGato token
     const CryptoGato = await ethers.getContractFactory("CryptoGato");
-    const cryptoGato = await CryptoGato.deploy(mockRouter.address);
+    const cryptoGato = await CryptoGato.deploy(await mockRouter.getAddress());
+    await cryptoGato.waitForDeployment();
 
     return {
         cryptoGato,
