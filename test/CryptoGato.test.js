@@ -339,8 +339,8 @@ describe("CryptoGato Token", function () {
         it("Should allow rescuing BNB", async function () {
             // Send some BNB to the contract
             await owner.sendTransaction({
-                to: cryptoGato.address,
-                value: ethers.utils.parseEther("1")
+                to: await cryptoGato.getAddress(),
+                value: ethers.parseEther("1")
             });
 
             const initialBalance = await owner.getBalance();
