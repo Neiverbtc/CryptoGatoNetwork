@@ -1,4 +1,5 @@
 const { ethers } = require("hardhat");
+const { formatEther } = ethers.utils;
 
 async function main() {
     console.log("==================================================");
@@ -14,7 +15,8 @@ async function main() {
 
     const [deployer] = await ethers.getSigners();
     console.log(`📍 Wallet verificando: ${deployer.address}`);
-    console.log(`💰 Balance: ${ethers.utils.formatEther(await deployer.getBalance())} BNB\n`);
+    const balance = await ethers.provider.getBalance(deployer.address);
+    console.log(`💰 Balance: ${formatEther(balance)} BNB\n`);
 
     for (const [name, address] of Object.entries(contracts)) {
         console.log(`🔍 ${name}:`);
@@ -56,8 +58,8 @@ async function checkCryptoGatoToken(address) {
         
         console.log(`   🏷️  Nombre: ${name}`);
         console.log(`   🔖 Símbolo: ${symbol}`);
-        console.log(`   📊 Supply actual: ${ethers.utils.formatEther(totalSupply)} CGATO`);
-        console.log(`   📈 Supply máximo: ${ethers.utils.formatEther(maxSupply)} CGATO`);
+        console.log(`   📊 Supply actual: ${formatEther(totalSupply)} CGATO`);
+        console.log(`   📈 Supply máximo: ${formatEther(maxSupply)} CGATO`);
         
         // Verificar si presale es minter
         const presaleAddress = "0x77A0C33A242CC4f4fAaA13A796423b79c25B5a1D";
@@ -110,8 +112,8 @@ async function checkCryptoGatoPresale(address) {
             const startTime = await presale.startTime();
             const endTime = await presale.endTime();
             
-            console.log(`   📊 Tokens vendidos: ${ethers.utils.formatEther(totalTokensSold)} CGATO`);
-            console.log(`   📈 Máximo a vender: ${ethers.utils.formatEther(maxTokensToSell)} CGATO`);
+            console.log(`   📊 Tokens vendidos: ${formatEther(totalTokensSold)} CGATO`);
+            console.log(`   📈 Máximo a vender: ${formatEther(maxTokensToSell)} CGATO`);
             console.log(`   🕐 Inicio: ${new Date(startTime * 1000).toLocaleString()}`);
             console.log(`   🕐 Fin: ${new Date(endTime * 1000).toLocaleString()}`);
         }
