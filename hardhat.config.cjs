@@ -54,11 +54,11 @@ module.exports = {
     },
   },
   
-  // Configuración del verificador de contratos
+  // Configuración del verificador de contratos (opcional)
   etherscan: {
     apiKey: {
-      bsc: process.env.BSCSCAN_API_KEY || "",
-      bscTestnet: process.env.BSCSCAN_API_KEY || "",
+      bsc: process.env.BSCSCAN_API_KEY || "dummy_key",
+      bscTestnet: process.env.BSCSCAN_API_KEY || "dummy_key",
     },
   },
   
