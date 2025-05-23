@@ -1,11 +1,5 @@
-# Hardhat files
-cache
-artifacts
-typechain
-typechain-types
-
-# Node.js
-node_modules
+# Dependencies
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -17,27 +11,41 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
-# Coverage
-coverage
-coverage.json
+# Build outputs
+dist/
+build/
+coverage/
 
-# Gas reporter
-gas-report.txt
+# Hardhat files
+cache/
+artifacts/
+typechain-types/
 
-# VS Code
-.vscode/launch.json
-.vscode/tasks.json
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# OS
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
 
 # Logs
 logs
 *.log
 
-# Dependency directories
-jspm_packages/
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
 
 # Optional npm cache directory
 .npm
@@ -45,28 +53,21 @@ jspm_packages/
 # Optional eslint cache
 .eslintcache
 
-# Yarn Integrity file
-.yarn-integrity
-
-# dotenv environment variables file
-.env
-
-# Hardhat Network
-.hardhat_network.json
-
-# Solidity
-*.sol.backup
-
-# Deployment addresses
-deployments/
-deployed-addresses.json
-
-# Coverage output
-coverage/
-
-# Gas reporter output
-gas-reporter-output.json
+# Replit specific
+.replit
+replit.nix
+.replit.md
 
 # Temporary files
-tmp/
+.tmp/
 temp/
+
+# Gas reports
+gas-report.txt
+
+# Coverage reports
+coverage.json
+lcov.info
+
+# Deployment addresses (keep local)
+deployments/localhost/
