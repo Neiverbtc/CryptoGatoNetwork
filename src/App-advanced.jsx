@@ -5,6 +5,10 @@ function App() {
   const [isConnected, setIsConnected] = useState(false);
   const [chainId, setChainId] = useState(null);
   const [showEcosystemModal, setShowEcosystemModal] = useState(false);
+  const [bnbAmount, setBnbAmount] = useState('');
+  const [showPresaleModal, setShowPresaleModal] = useState(false);
+  const [isWhitelisted, setIsWhitelisted] = useState(false);
+  const [userContribution, setUserContribution] = useState('0');
 
   // Detectar si MetaMask está instalado
   const isMetaMaskInstalled = () => {
@@ -30,6 +34,10 @@ function App() {
       setWalletAddress(accounts[0]);
       setIsConnected(true);
       setChainId(parseInt(chainId, 16));
+      
+      // Simular verificación de whitelist
+      setIsWhitelisted(Math.random() > 0.5);
+      setUserContribution((Math.random() * 2).toFixed(4));
     } catch (error) {
       console.error('Error conectando wallet:', error);
     }
@@ -40,6 +48,35 @@ function App() {
     setWalletAddress('');
     setIsConnected(false);
     setChainId(null);
+    setIsWhitelisted(false);
+    setUserContribution('0');
+  };
+
+  const calculateTokens = (bnbAmount) => {
+    const rate = 50000; // 50,000 CGATO por BNB
+    return (parseFloat(bnbAmount || 0) * rate).toLocaleString();
+  };
+
+  const handlePresalePurchase = async () => {
+    if (!isConnected) {
+      alert('Por favor conecta tu wallet primero');
+      return;
+    }
+    
+    if (!bnbAmount || parseFloat(bnbAmount) < 0.1) {
+      alert('Mínimo 0.1 BNB requerido');
+      return;
+    }
+
+    try {
+      // Simular transacción de preventa
+      alert(`¡Compra exitosa! Has recibido ${calculateTokens(bnbAmount)} CGATO tokens`);
+      setBnbAmount('');
+      setShowPresaleModal(false);
+    } catch (error) {
+      console.error('Error en la compra:', error);
+      alert('Error en la transacción. Intenta nuevamente.');
+    }
   };
 
   // Cambiar a BSC Testnet
@@ -307,6 +344,25 @@ function App() {
           flexWrap: 'wrap'
         }}>
           <button 
+            onClick={() => setShowPresaleModal(true)}
+            style={{
+              background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+              border: 'none',
+              padding: '20px 40px',
+              borderRadius: '15px',
+              color: 'white',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '20px',
+              boxShadow: '0 15px 40px rgba(251, 191, 36, 0.4)',
+              transition: 'all 0.3s ease',
+              animation: 'pulse 2s infinite'
+            }}
+          >
+            🚀 PARTICIPAR EN PREVENTA
+          </button>
+
+          <button 
             onClick={exploreEcosystem}
             style={{
               background: 'linear-gradient(135deg, #8b5cf6, #3b82f6)',
@@ -321,7 +377,7 @@ function App() {
               transition: 'all 0.3s ease'
             }}
           >
-            🚀 Explorar Ecosystem
+            🔍 Explorar Ecosystem
           </button>
           
           <button 
@@ -971,6 +1027,390 @@ function App() {
               >
                 ✨ ¡Increíble! Cerrar
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Advanced Presale Modal */}
+      {showPresaleModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.8)',
+          backdropFilter: 'blur(10px)',
+          zIndex: 1000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px'
+        }}>
+          <div style={{
+            background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.95), rgba(30, 41, 59, 0.95))',
+            border: '2px solid rgba(251, 191, 36, 0.3)',
+            borderRadius: '25px',
+            padding: '40px',
+            maxWidth: '900px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            position: 'relative',
+            boxShadow: '0 25px 50px rgba(0, 0, 0, 0.5)'
+          }}>
+            {/* Close Button */}
+            <button
+              onClick={() => setShowPresaleModal(false)}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                right: '20px',
+                background: 'rgba(239, 68, 68, 0.2)',
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                color: '#ef4444',
+                fontSize: '20px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ✕
+            </button>
+
+            {/* Modal Header */}
+            <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+              <h2 style={{
+                fontSize: '42px',
+                fontWeight: 'bold',
+                background: 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                color: 'transparent',
+                marginBottom: '15px'
+              }}>
+                🚀 Preventa CryptoGato
+              </h2>
+              <p style={{ fontSize: '18px', color: '#94a3b8' }}>
+                ¡Únete a la revolución DeFi más esperada del año!
+              </p>
+            </div>
+
+            {/* Live Stats */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+              gap: '20px',
+              marginBottom: '40px'
+            }}>
+              {[
+                { label: 'Total Recaudado', value: '1,847 BNB', icon: '💰', color: '#fbbf24' },
+                { label: 'Participantes', value: '2,847', icon: '👥', color: '#22c55e' },
+                { label: 'Tiempo Restante', value: '12d 8h 23m', icon: '⏰', color: '#3b82f6' },
+                { label: 'Precio Actual', value: '50K CGATO/BNB', icon: '💎', color: '#a855f7' }
+              ].map((stat, index) => (
+                <div key={index} style={{
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: `1px solid ${stat.color}50`,
+                  borderRadius: '15px',
+                  padding: '20px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '24px', marginBottom: '8px' }}>{stat.icon}</div>
+                  <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#fff', marginBottom: '5px' }}>
+                    {stat.value}
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                    {stat.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Purchase Interface */}
+            <div style={{
+              background: 'rgba(15, 23, 42, 0.8)',
+              border: '2px solid rgba(139, 92, 246, 0.3)',
+              borderRadius: '20px',
+              padding: '30px'
+            }}>
+              {!isConnected ? (
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔌</div>
+                  <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#c084fc', marginBottom: '15px' }}>
+                    Conecta tu Wallet
+                  </h3>
+                  <p style={{ color: '#94a3b8', marginBottom: '30px', fontSize: '16px' }}>
+                    Para participar en la preventa necesitas conectar tu wallet MetaMask
+                  </p>
+                  <button
+                    onClick={connectWallet}
+                    style={{
+                      background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '18px 40px',
+                      borderRadius: '15px',
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      boxShadow: '0 10px 30px rgba(59, 130, 246, 0.3)'
+                    }}
+                  >
+                    🔗 Conectar MetaMask
+                  </button>
+                </div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
+                  {/* Purchase Form */}
+                  <div>
+                    <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '20px' }}>
+                      💎 Comprar Tokens
+                    </h3>
+
+                    {/* User Status */}
+                    <div style={{
+                      background: isWhitelisted ? 'rgba(34, 197, 94, 0.1)' : 'rgba(251, 191, 36, 0.1)',
+                      border: `1px solid ${isWhitelisted ? 'rgba(34, 197, 94, 0.3)' : 'rgba(251, 191, 36, 0.3)'}`,
+                      borderRadius: '10px',
+                      padding: '15px',
+                      marginBottom: '20px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '32px', marginBottom: '8px' }}>
+                        {isWhitelisted ? '✅' : '⏳'}
+                      </div>
+                      <div style={{ 
+                        fontSize: '16px', 
+                        fontWeight: 'bold', 
+                        color: isWhitelisted ? '#22c55e' : '#fbbf24',
+                        marginBottom: '5px'
+                      }}>
+                        {isWhitelisted ? 'USUARIO WHITELISTED' : 'USUARIO PÚBLICO'}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                        {isWhitelisted ? 'Acceso prioritario + Bonus 5%' : 'Acceso estándar a preventa'}
+                      </div>
+                    </div>
+
+                    {/* Amount Input */}
+                    <div style={{ marginBottom: '20px' }}>
+                      <label style={{ 
+                        display: 'block', 
+                        fontSize: '16px', 
+                        fontWeight: 'bold', 
+                        color: '#e2e8f0', 
+                        marginBottom: '10px' 
+                      }}>
+                        💰 Cantidad BNB
+                      </label>
+                      <input
+                        type="number"
+                        value={bnbAmount}
+                        onChange={(e) => setBnbAmount(e.target.value)}
+                        placeholder="0.1"
+                        min="0.1"
+                        max="10"
+                        step="0.1"
+                        style={{
+                          width: '100%',
+                          padding: '18px',
+                          borderRadius: '12px',
+                          border: '2px solid rgba(139, 92, 246, 0.3)',
+                          background: 'rgba(30, 41, 59, 0.6)',
+                          color: '#fff',
+                          fontSize: '20px',
+                          fontWeight: 'bold',
+                          outline: 'none'
+                        }}
+                      />
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        fontSize: '12px', 
+                        color: '#94a3b8', 
+                        marginTop: '8px' 
+                      }}>
+                        <span>Mínimo: 0.1 BNB</span>
+                        <span>Máximo: 10 BNB</span>
+                      </div>
+                    </div>
+
+                    {/* Quick Amount Buttons */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(4, 1fr)', 
+                      gap: '10px', 
+                      marginBottom: '20px' 
+                    }}>
+                      {['0.1', '0.5', '1', '5'].map((amount) => (
+                        <button
+                          key={amount}
+                          onClick={() => setBnbAmount(amount)}
+                          style={{
+                            background: bnbAmount === amount 
+                              ? 'linear-gradient(135deg, #8b5cf6, #6366f1)' 
+                              : 'rgba(30, 41, 59, 0.8)',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            color: '#fff',
+                            padding: '10px',
+                            borderRadius: '8px',
+                            fontSize: '14px',
+                            fontWeight: 'bold',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {amount} BNB
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Token Calculator */}
+                    <div style={{
+                      background: 'rgba(139, 92, 246, 0.1)',
+                      border: '1px solid rgba(139, 92, 246, 0.3)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginBottom: '25px'
+                    }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center',
+                        marginBottom: '10px'
+                      }}>
+                        <span style={{ color: '#c084fc', fontWeight: 'bold', fontSize: '16px' }}>
+                          Recibirás:
+                        </span>
+                        <span style={{ fontSize: '24px', fontWeight: 'bold', color: '#fff' }}>
+                          {calculateTokens(bnbAmount)} CGATO
+                        </span>
+                      </div>
+                      {isWhitelisted && (
+                        <div style={{ fontSize: '14px', color: '#22c55e', textAlign: 'center' }}>
+                          ✨ +5% Bonus por Whitelist
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Purchase Button */}
+                    <button
+                      onClick={handlePresalePurchase}
+                      disabled={!bnbAmount || parseFloat(bnbAmount) < 0.1}
+                      style={{
+                        background: (!bnbAmount || parseFloat(bnbAmount) < 0.1) 
+                          ? 'rgba(107, 114, 128, 0.5)' 
+                          : 'linear-gradient(135deg, #fbbf24, #f59e0b)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '18px',
+                        borderRadius: '12px',
+                        fontSize: '18px',
+                        fontWeight: 'bold',
+                        cursor: (!bnbAmount || parseFloat(bnbAmount) < 0.1) ? 'not-allowed' : 'pointer',
+                        width: '100%',
+                        boxShadow: (!bnbAmount || parseFloat(bnbAmount) < 0.1) 
+                          ? 'none' 
+                          : '0 10px 30px rgba(251, 191, 36, 0.3)'
+                      }}
+                    >
+                      🚀 COMPRAR CGATO TOKENS
+                    </button>
+                  </div>
+
+                  {/* Dashboard */}
+                  <div>
+                    <h3 style={{ fontSize: '24px', fontWeight: 'bold', color: '#60a5fa', marginBottom: '20px' }}>
+                      📊 Tu Dashboard
+                    </h3>
+
+                    {/* Wallet Info */}
+                    <div style={{
+                      background: 'rgba(30, 41, 59, 0.6)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      marginBottom: '20px'
+                    }}>
+                      <div style={{ fontSize: '14px', color: '#94a3b8', marginBottom: '8px' }}>
+                        🔗 Wallet Conectada
+                      </div>
+                      <div style={{ 
+                        fontSize: '14px', 
+                        fontFamily: 'monospace', 
+                        color: '#60a5fa',
+                        marginBottom: '10px'
+                      }}>
+                        {`${walletAddress.slice(0, 8)}...${walletAddress.slice(-6)}`}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                        Red: {chainId === 97 ? 'BSC Testnet ✅' : 'Red Incorrecta ❌'}
+                      </div>
+                    </div>
+
+                    {/* Investment Stats */}
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: '1fr 1fr', 
+                      gap: '15px', 
+                      marginBottom: '20px' 
+                    }}>
+                      <div style={{
+                        background: 'rgba(34, 197, 94, 0.1)',
+                        border: '1px solid rgba(34, 197, 94, 0.3)',
+                        borderRadius: '10px',
+                        padding: '15px',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#22c55e' }}>
+                          {userContribution}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                          BNB Contribuidos
+                        </div>
+                      </div>
+
+                      <div style={{
+                        background: 'rgba(168, 85, 247, 0.1)',
+                        border: '1px solid rgba(168, 85, 247, 0.3)',
+                        borderRadius: '10px',
+                        padding: '15px',
+                        textAlign: 'center'
+                      }}>
+                        <div style={{ fontSize: '20px', fontWeight: 'bold', color: '#a855f7' }}>
+                          {(parseFloat(userContribution) * 50000).toLocaleString()}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#94a3b8' }}>
+                          CGATO Tokens
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Benefits */}
+                    <div style={{
+                      background: 'rgba(251, 191, 36, 0.1)',
+                      border: '1px solid rgba(251, 191, 36, 0.3)',
+                      borderRadius: '12px',
+                      padding: '20px'
+                    }}>
+                      <h4 style={{ fontSize: '18px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '15px' }}>
+                        🎁 Beneficios Exclusivos
+                      </h4>
+                      <div style={{ fontSize: '14px', color: '#e2e8f0', lineHeight: '1.6' }}>
+                        ✨ 50% descuento vs precio listado<br/>
+                        🎯 Acceso prioritario a staking<br/>
+                        🏆 NFT gratis por +1 BNB<br/>
+                        👑 Derechos de governance<br/>
+                        📅 Vesting: 25% TGE + 25% mensual
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
