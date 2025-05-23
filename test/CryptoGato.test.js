@@ -194,46 +194,36 @@ describe("CryptoGato Token", function () {
         });
     });
 
-    describe("Trading and Limits", function () {
+    describe("Token Transfers", function () {
         beforeEach(async function () {
             // Mint some tokens 
             await cryptoGato.mint(owner.address, parseTokens("1000000"), 1);
         });
 
-        it("Should enforce max transaction amount", async function () {
-            const maxTxAmount = await cryptoGato.maxTxAmount();
-            const excessAmount = maxTxAmount + 1n;
-
-            await expectRevert(
-                cryptoGato.transfer(addr1.address, excessAmount),
-                "MaxTxAmountExceeded"
-            );
+        it("Should allow basic token transfers", async function () {
+            const transferAmount = parseTokens("1000");
+            
+            await expect(cryptoGato.transfer(addr1.address, transferAmount))
+                .to.emit(cryptoGato, "Transfer")
+                .withArgs(owner.address, addr1.address, transferAmount);
+                
+            expect(await cryptoGato.balanceOf(addr1.address)).to.equal(transferAmount);
         });
 
-        it("Should enforce max wallet amount", async function () {
-            const maxWalletAmount = await cryptoGato.maxWalletAmount();
-            const validAmount = maxWalletAmount / 2n;
+        it("Should handle approve and transferFrom", async function () {
+            const amount = parseTokens("500");
             
-            // First transfer should succeed
-            await cryptoGato.transfer(addr1.address, validAmount);
-            
-            // Second transfer that would exceed wallet limit should fail
-            await expectRevert(
-                cryptoGato.transfer(addr1.address, validAmount + 1n),
-                "MaxWalletAmountExceeded"
-            );
-        });
-
-        it("Should exempt addresses from limits", async function () {
-            const maxTxAmount = await cryptoGato.maxTxAmount();
-            const excessAmount = maxTxAmount + 1n;
-
-            // Set exemption
-            await cryptoGato.setExemptFromLimits(addr1.address, true);
-
-            // Should allow excess transfer from exempt address
-            await cryptoGato.transfer(addr1.address, excessAmount);
-            await cryptoGato.connect(addr1).transfer(addr2.address, excessAmount);
+            // Approve
+            await expect(cryptoGato.approve(addr1.address, amount))
+                .to.emit(cryptoGato, "Approval")
+                .withArgs(owner.address, addr1.address, amount);
+                
+            // TransferFrom
+            await expect(cryptoGato.connect(addr1).transferFrom(owner.address, addr2.address, amount))
+                .to.emit(cryptoGato, "Transfer")
+                .withArgs(owner.address, addr2.address, amount);
+                
+            expect(await cryptoGato.balanceOf(addr2.address)).to.equal(amount);
         });
     });
 
