@@ -1,4 +1,72 @@
 import React, { useState, useEffect } from 'react';
+import { CONTRACTS } from './config/wagmi';
+
+// ABI del contrato CryptoGatoPresale
+const PRESALE_ABI = [
+  {
+    "inputs": [],
+    "name": "currentPhase",
+    "outputs": [{"internalType": "enum CryptoGatoPresale.PresalePhase", "name": "", "type": "uint8"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "tokenPrice",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalRaised",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "fundingGoal",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "contributions",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"internalType": "address", "name": "", "type": "address"}],
+    "name": "whitelist",
+    "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "buyTokens",
+    "outputs": [],
+    "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "endTime",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "participantCount",
+    "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+];
 
 function App() {
   const [walletAddress, setWalletAddress] = useState('');
@@ -9,6 +77,16 @@ function App() {
   const [showPresaleModal, setShowPresaleModal] = useState(false);
   const [isWhitelisted, setIsWhitelisted] = useState(false);
   const [userContribution, setUserContribution] = useState('0');
+  
+  // Estados para datos reales del contrato
+  const [presaleData, setPresaleData] = useState({
+    totalRaised: '0',
+    participantCount: '0',
+    currentPhase: 0,
+    tokenPrice: '0',
+    endTime: 0,
+    fundingGoal: '0'
+  });
 
   // Detectar si MetaMask está instalado
   const isMetaMaskInstalled = () => {
@@ -35,9 +113,8 @@ function App() {
       setIsConnected(true);
       setChainId(parseInt(chainId, 16));
       
-      // Simular verificación de whitelist
-      setIsWhitelisted(Math.random() > 0.5);
-      setUserContribution((Math.random() * 2).toFixed(4));
+      // Cargar datos reales del contrato
+      await loadPresaleData(accounts[0], parseInt(chainId, 16));
     } catch (error) {
       console.error('Error conectando wallet:', error);
     }
@@ -52,9 +129,95 @@ function App() {
     setUserContribution('0');
   };
 
+  // Función para cargar datos reales del contrato
+  const loadPresaleData = async (userAddress, networkId) => {
+    try {
+      const contractAddress = CONTRACTS[networkId]?.CRYPTOGATO_PRESALE;
+      if (!contractAddress) {
+        console.log('Contrato no disponible en esta red');
+        return;
+      }
+
+      // Preparar para leer datos del contrato
+
+      // Leer datos del contrato
+      const [
+        totalRaised,
+        participantCount,
+        currentPhase,
+        tokenPrice,
+        endTime,
+        fundingGoal,
+        userContribution,
+        whitelistStatus
+      ] = await Promise.allSettled([
+        callContractMethod(contractAddress, 'totalRaised'),
+        callContractMethod(contractAddress, 'participantCount'),
+        callContractMethod(contractAddress, 'currentPhase'),
+        callContractMethod(contractAddress, 'tokenPrice'),
+        callContractMethod(contractAddress, 'endTime'),
+        callContractMethod(contractAddress, 'fundingGoal'),
+        callContractMethod(contractAddress, 'contributions', [userAddress]),
+        callContractMethod(contractAddress, 'whitelist', [userAddress])
+      ]);
+
+      // Actualizar estados con datos reales
+      setPresaleData({
+        totalRaised: totalRaised.status === 'fulfilled' ? formatEther(totalRaised.value) : '0',
+        participantCount: participantCount.status === 'fulfilled' ? participantCount.value.toString() : '0',
+        currentPhase: currentPhase.status === 'fulfilled' ? currentPhase.value : 0,
+        tokenPrice: tokenPrice.status === 'fulfilled' ? tokenPrice.value.toString() : '0',
+        endTime: endTime.status === 'fulfilled' ? endTime.value : 0,
+        fundingGoal: fundingGoal.status === 'fulfilled' ? formatEther(fundingGoal.value) : '0'
+      });
+
+      setUserContribution(userContribution.status === 'fulfilled' ? 
+        formatEther(userContribution.value) : '0');
+      setIsWhitelisted(whitelistStatus.status === 'fulfilled' ? 
+        whitelistStatus.value : false);
+
+    } catch (error) {
+      console.error('Error cargando datos del contrato:', error);
+    }
+  };
+
+  // Función helper para llamar métodos del contrato
+  const callContractMethod = async (contractAddress, methodName, params = []) => {
+    try {
+      const data = window.ethereum.utils?.encodeFunctionCall({
+        name: methodName,
+        type: 'function',
+        inputs: PRESALE_ABI.find(item => item.name === methodName)?.inputs || []
+      }, params) || await encodeMethodCall(methodName, params);
+
+      const result = await window.ethereum.request({
+        method: 'eth_call',
+        params: [{
+          to: contractAddress,
+          data: data
+        }, 'latest']
+      });
+
+      return window.ethereum.utils?.decodeParameter(
+        PRESALE_ABI.find(item => item.name === methodName)?.outputs[0]?.type || 'uint256',
+        result
+      ) || parseInt(result, 16);
+    } catch (error) {
+      console.error(`Error llamando ${methodName}:`, error);
+      throw error;
+    }
+  };
+
+  // Función para formatear Wei a Ether
+  const formatEther = (wei) => {
+    return (parseInt(wei, 16) / 1e18).toString();
+  };
+
   const calculateTokens = (bnbAmount) => {
-    const rate = 50000; // 50,000 CGATO por BNB
-    return (parseFloat(bnbAmount || 0) * rate).toLocaleString();
+    const tokenPrice = presaleData.tokenPrice || '20000000000000000'; // 0.02 BNB por token
+    const bnbWei = parseFloat(bnbAmount || 0) * 1e18;
+    const tokens = bnbWei / parseInt(tokenPrice);
+    return Math.floor(tokens).toLocaleString();
   };
 
   const handlePresalePurchase = async () => {
@@ -68,14 +231,50 @@ function App() {
       return;
     }
 
+    if (chainId !== 97) {
+      alert('Por favor cambia a BSC Testnet para participar en la preventa');
+      return;
+    }
+
     try {
-      // Simular transacción de preventa
-      alert(`¡Compra exitosa! Has recibido ${calculateTokens(bnbAmount)} CGATO tokens`);
+      const contractAddress = CONTRACTS[chainId]?.CRYPTOGATO_PRESALE;
+      if (!contractAddress) {
+        alert('Contrato de preventa no disponible en esta red');
+        return;
+      }
+
+      // Convertir BNB a Wei
+      const valueInWei = '0x' + (parseFloat(bnbAmount) * 1e18).toString(16);
+
+      // Llamar función buyTokens del contrato
+      const txHash = await window.ethereum.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from: walletAddress,
+          to: contractAddress,
+          value: valueInWei,
+          data: '0xd0febe4c' // buyTokens() function selector
+        }]
+      });
+
+      alert(`¡Transacción enviada! Hash: ${txHash}\n¡Recibirás ${calculateTokens(bnbAmount)} CGATO tokens!`);
+      
+      // Limpiar formulario y cerrar modal
       setBnbAmount('');
       setShowPresaleModal(false);
+      
+      // Recargar datos del contrato
+      setTimeout(() => loadPresaleData(walletAddress, chainId), 3000);
+      
     } catch (error) {
       console.error('Error en la compra:', error);
-      alert('Error en la transacción. Intenta nuevamente.');
+      if (error.code === 4001) {
+        alert('Transacción cancelada por el usuario');
+      } else if (error.message.includes('insufficient funds')) {
+        alert('Fondos insuficientes en tu wallet');
+      } else {
+        alert('Error en la transacción: ' + error.message);
+      }
     }
   };
 
